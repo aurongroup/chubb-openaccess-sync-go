@@ -1,4 +1,6 @@
 openaccess-sync
+openaccess-sync.exe
+syncconfig.properties
 *.csv
 *.xlsx
 .idea/
