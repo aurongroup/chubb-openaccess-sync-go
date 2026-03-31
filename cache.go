@@ -2,6 +2,8 @@ package main
 
 import (
 	"log/slog"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 // DataCache holds all data fetched from the OpenAccess API.
@@ -73,8 +75,35 @@ func (c *DataCache) Fill() error {
 	return nil
 }
 
+// fetchWithProgress pages through all results for typeName, displaying a progress
+// bar as each page arrives. The bar max is totalPages from the first response.
+func (c *DataCache) fetchWithProgress(typeName, filter, label string) ([]map[string]any, error) {
+	var all []map[string]any
+	var bar *progressbar.ProgressBar
+	for page := 1; ; page++ {
+		items, totalPages, err := c.client.getInstancesPage(typeName, filter, page)
+		if err != nil {
+			return nil, err
+		}
+		if bar == nil {
+			bar = progressbar.NewOptions(totalPages,
+				progressbar.OptionSetDescription(label),
+				progressbar.OptionShowCount(),
+				progressbar.OptionSetWidth(30),
+			)
+		}
+		_ = bar.Add(1)
+		all = append(all, items...)
+		if page >= totalPages {
+			break
+		}
+	}
+	_ = bar.Finish()
+	return all, nil
+}
+
 func (c *DataCache) fillAccessLevels() error {
-	items, err := c.client.GetInstances("Lnl_AccessLevel", "")
+	items, err := c.fetchWithProgress("Lnl_AccessLevel", "", "Access levels")
 	if err != nil {
 		return err
 	}
@@ -92,7 +121,7 @@ func (c *DataCache) fillAccessLevels() error {
 }
 
 func (c *DataCache) fillBadgeStatuses() error {
-	items, err := c.client.GetInstances("Lnl_BadgeStatus", "")
+	items, err := c.fetchWithProgress("Lnl_BadgeStatus", "", "Badge statuses")
 	if err != nil {
 		return err
 	}
@@ -106,7 +135,7 @@ func (c *DataCache) fillBadgeStatuses() error {
 }
 
 func (c *DataCache) fillBadgeTypes() error {
-	items, err := c.client.GetInstances("Lnl_BadgeType", "")
+	items, err := c.fetchWithProgress("Lnl_BadgeType", "", "Badge types")
 	if err != nil {
 		return err
 	}
@@ -120,7 +149,7 @@ func (c *DataCache) fillBadgeTypes() error {
 }
 
 func (c *DataCache) fillCardholders() error {
-	items, err := c.client.GetInstances("Lnl_Cardholder", "")
+	items, err := c.fetchWithProgress("Lnl_Cardholder", "", "Cardholders")
 	if err != nil {
 		return err
 	}
@@ -134,7 +163,7 @@ func (c *DataCache) fillCardholders() error {
 }
 
 func (c *DataCache) fillBadges() error {
-	items, err := c.client.GetInstances("Lnl_Badge", "")
+	items, err := c.fetchWithProgress("Lnl_Badge", "", "Badges")
 	if err != nil {
 		return err
 	}
@@ -149,7 +178,7 @@ func (c *DataCache) fillBadges() error {
 }
 
 func (c *DataCache) fillAssignments() error {
-	items, err := c.client.GetInstances("Lnl_AccessLevelAssignment", "")
+	items, err := c.fetchWithProgress("Lnl_AccessLevelAssignment", "", "Assignments")
 	if err != nil {
 		return err
 	}
