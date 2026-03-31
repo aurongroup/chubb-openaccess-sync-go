@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -54,7 +54,7 @@ func NewClient(cfg AppConfig) (*Client, error) {
 		ResponseHeaderTimeout: defaultRequestTimeout,
 	}
 	if cfg.Insecure {
-		slog.Info("SSL certificate validation disabled")
+		log.Println("SSL certificate validation disabled")
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
 	}
 
@@ -127,13 +127,13 @@ func (c *Client) Ping() error {
 	if err != nil {
 		return err
 	}
-	slog.Debug("ping", "status", resp.StatusCode)
+	log.Printf("ping status=%d", resp.StatusCode)
 	return nil
 }
 
 // Authenticate logs in and stores the session token.
 func (c *Client) Authenticate() error {
-	slog.Info("Authenticating", "user", c.user, "directory", c.directory)
+	log.Printf("Authenticating user=%s directory=%s", c.user, c.directory)
 	uri := c.baseURL + "/authentication?version=" + apiVersion
 	body := map[string]string{
 		"user_name":    c.user,

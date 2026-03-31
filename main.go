@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"log/slog"
+	"log"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -14,35 +14,30 @@ func main() {
 		if errors.Is(err, pflag.ErrHelp) {
 			os.Exit(0)
 		}
-		slog.Error("Error parsing command line arguments", "err", err)
-		os.Exit(1)
+		log.Fatalf("Error parsing command line arguments: %v", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		slog.Error("Invalid configuration", "err", err)
-		os.Exit(1)
+		log.Fatalf("Invalid configuration: %v", err)
 	}
 
 	client, err := NewClient(cfg)
 	if err != nil {
-		slog.Error("Failed to initialize client", "err", err)
-		os.Exit(1)
+		log.Fatalf("Failed to initialize client: %v", err)
 	}
 	defer func() {
 		if err := client.Close(); err != nil {
-			slog.Warn("Failed to close client session", "err", err)
+			log.Printf("Failed to close client session: %v", err)
 		}
 	}()
 
 	cache := NewDataCache(client)
 	if err := cache.Fill(); err != nil {
-		slog.Error("Failed to load API data", "err", err)
-		os.Exit(1)
+		log.Fatalf("Failed to load API data: %v", err)
 	}
 
 	if err := dispatch(cfg, cache); err != nil {
-		slog.Error("Operation failed", "err", err)
-		os.Exit(1)
+		log.Fatalf("Operation failed: %v", err)
 	}
 }
 
@@ -58,15 +53,11 @@ func dispatch(cfg AppConfig, cache *DataCache) error {
 		}
 		result := CompareRecords(csvRecords, cache.records)
 		for _, r := range result {
-			slog.Info("sync",
-				"status", r.SyncStatus.String(),
-				"ssno", r.SSNO,
-				"badgeId", r.BadgeID,
-			)
+			log.Printf("sync status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
 		}
 
 	case cfg.Cleanup:
-		slog.Info("cleanup not yet implemented")
+		log.Println("cleanup not yet implemented")
 
 	case cfg.FullExportFile != "":
 		return ExportXLSX(cache, cfg.FullExportFile)
