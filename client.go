@@ -53,6 +53,7 @@ func NewClient(cfg AppConfig) (*Client, error) {
 		TLSHandshakeTimeout:   defaultConnectTimeout,
 		ResponseHeaderTimeout: defaultRequestTimeout,
 	}
+
 	if cfg.Insecure {
 		log.Println("SSL certificate validation disabled")
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
@@ -74,9 +75,11 @@ func NewClient(cfg AppConfig) (*Client, error) {
 	if err := c.Ping(); err != nil {
 		return nil, fmt.Errorf("ping: %w", err)
 	}
+
 	if err := c.Authenticate(); err != nil {
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}
+
 	return c, nil
 }
 
@@ -87,6 +90,7 @@ func (c *Client) do(method, uri string, body any, extraHeaders map[string]string
 		if err != nil {
 			return nil, nil, &ClientError{Message: "marshal request body: " + err.Error(), Method: method, URI: uri}
 		}
+
 		bodyReader = bytes.NewReader(b)
 	}
 
@@ -94,6 +98,7 @@ func (c *Client) do(method, uri string, body any, extraHeaders map[string]string
 	if err != nil {
 		return nil, nil, &ClientError{Message: err.Error(), Method: method, URI: uri}
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	for k, v := range extraHeaders {
@@ -110,6 +115,7 @@ func (c *Client) do(method, uri string, body any, extraHeaders map[string]string
 	if err != nil {
 		return resp, nil, &ClientError{Message: "read response body: " + err.Error(), Method: method, URI: uri, StatusCode: resp.StatusCode}
 	}
+
 	return resp, raw, nil
 }
 
@@ -123,10 +129,12 @@ func (c *Client) authHeaders() map[string]string {
 // Ping verifies the API is reachable.
 func (c *Client) Ping() error {
 	uri := c.baseURL + "/version?version=" + apiVersion
+
 	resp, _, err := c.do("GET", uri, nil, map[string]string{"Application-Id": c.appID})
 	if err != nil {
 		return err
 	}
+
 	log.Printf("ping status=%d", resp.StatusCode)
 	return nil
 }
@@ -134,7 +142,9 @@ func (c *Client) Ping() error {
 // Authenticate logs in and stores the session token.
 func (c *Client) Authenticate() error {
 	log.Printf("Authenticating user=%s directory=%s", c.user, c.directory)
+
 	uri := c.baseURL + "/authentication?version=" + apiVersion
+
 	body := map[string]string{
 		"user_name":    c.user,
 		"password":     c.password,
@@ -145,6 +155,7 @@ func (c *Client) Authenticate() error {
 	if err != nil {
 		return err
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return &ClientError{Message: "authentication failed", Method: "POST", URI: uri, StatusCode: resp.StatusCode}
 	}
@@ -153,11 +164,13 @@ func (c *Client) Authenticate() error {
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return &ClientError{Message: "parse auth response: " + err.Error(), Method: "POST", URI: uri}
 	}
+
 	token, _ := result["session_token"].(string)
 	if token == "" {
 		return &ClientError{Message: "no session_token in auth response", Method: "POST", URI: uri}
 	}
 	c.sessionToken = token
+
 	return nil
 }
 
@@ -166,9 +179,11 @@ func (c *Client) Close() error {
 	if c.sessionToken == "" {
 		return nil
 	}
+
 	uri := c.baseURL + "/authentication?version=" + apiVersion
 	_, _, err := c.do("DELETE", uri, nil, c.authHeaders())
 	c.sessionToken = ""
+
 	return err
 }
 
@@ -176,11 +191,13 @@ func (c *Client) Close() error {
 // Returns the property_value_map contents for each item.
 func (c *Client) GetInstances(typeName, filter string) ([]map[string]any, error) {
 	var all []map[string]any
+
 	for page := 1; ; page++ {
 		items, totalPages, err := c.getInstancesPage(typeName, filter, page)
 		if err != nil {
 			return nil, err
 		}
+
 		all = append(all, items...)
 		if page >= totalPages {
 			break
@@ -204,6 +221,7 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 	if err != nil {
 		return nil, 0, err
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, &ClientError{Message: "unexpected status", Method: "GET", URI: uri, StatusCode: resp.StatusCode}
 	}
@@ -216,11 +234,12 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 	if _, ok := result["page_number"]; !ok {
 		return nil, 0, &ClientError{Message: "missing page_number in response", Method: "GET", URI: uri}
 	}
+
 	tp, ok := result["total_pages"]
 	if !ok {
 		return nil, 0, &ClientError{Message: "missing total_pages in response", Method: "GET", URI: uri}
 	}
-	totalPages := int(tp.(float64))
+	totalPages := int(tp.(float64)) // FIXME
 
 	var items []map[string]any
 	if itemList, ok := result["item_list"].([]any); ok {
@@ -229,13 +248,16 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 			if !ok {
 				continue
 			}
+
 			props, ok := m["property_value_map"].(map[string]any)
 			if !ok {
 				continue
 			}
+
 			items = append(items, props)
 		}
 	}
+
 	return items, totalPages, nil
 }
 
@@ -252,12 +274,15 @@ func (c *Client) UpdateInstance(_ string, _ map[string]any) error {
 // DeleteInstance deletes an instance by sending its representation.
 func (c *Client) DeleteInstance(typeName string, body map[string]any) error {
 	uri := c.baseURL + "/instances?version=" + apiVersion
+
 	resp, _, err := c.do("DELETE", uri, body, c.authHeaders())
 	if err != nil {
 		return err
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return &ClientError{Message: "delete failed", Method: "DELETE", URI: uri, StatusCode: resp.StatusCode}
 	}
+
 	return nil
 }

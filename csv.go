@@ -81,7 +81,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) AccessRecord {
 }
 
 // PrintCSVReport writes the access records to a pipe-delimited CSV file.
-func PrintCSVReport(records []AccessRecord, path string) error {
+func PrintCSVReport(records []*AccessRecord, path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err

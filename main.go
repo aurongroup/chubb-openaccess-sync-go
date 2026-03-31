@@ -47,9 +47,13 @@ func dispatch(cfg AppConfig, cache *DataCache) error {
 		return PrintCSVReport(cache.records, cfg.ExportFile)
 
 	case cfg.InputFile != "":
-		csvRecords, err := ParseCSV(cfg.InputFile)
+		csvValues, err := ParseCSV(cfg.InputFile)
 		if err != nil {
 			return err
+		}
+		csvRecords := make([]*AccessRecord, len(csvValues))
+		for i := range csvValues {
+			csvRecords[i] = &csvValues[i]
 		}
 		result := CompareRecords(csvRecords, cache.records)
 		for _, r := range result {

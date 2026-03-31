@@ -5,28 +5,40 @@ import (
 	"time"
 )
 
+// newTestCache returns a DataCache pre-populated with a badge status (ID=1)
+// and badge type (ID=1), sufficient for constructing badges in tests.
+func newTestCache() *DataCache {
+	c := NewDataCache(nil)
+	c.statuses[1] = &LnlBadgeStatus{ID: 1, Name: "Active"}
+	c.badgeTypes[1] = &LnlBadgeType{ID: 1, Name: "Standard"}
+	return c
+}
+
 // ---- LnlBadge tests ----
 
 func TestLnlBadge_fromProps_shouldParseId(t *testing.T) {
 	props := map[string]any{
-		"ID":     float64(42),
-		"STATUS": float64(1),
-		"TYPE":   float64(0),
+		"ID":       float64(42),
+		"BADGEKEY": float64(1),
+		"STATUS":   float64(1),
+		"TYPE":     float64(1),
 	}
-	badge := NewLnlBadge(props, nil)
+	badge, err := NewLnlBadge(props, newTestCache())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if badge.ID != 42 {
 		t.Errorf("expected ID 42, got %d", badge.ID)
 	}
 }
 
-func TestLnlBadge_fromProps_shouldDefaultIdToZeroWhenAbsent(t *testing.T) {
+func TestLnlBadge_fromProps_shouldErrorWhenIdAbsent(t *testing.T) {
 	props := map[string]any{
-		"STATUS": float64(1),
-		"TYPE":   float64(0),
+		"BADGEKEY": float64(1),
 	}
-	badge := NewLnlBadge(props, nil)
-	if badge.ID != 0 {
-		t.Errorf("expected ID 0, got %d", badge.ID)
+	_, err := NewLnlBadge(props, NewDataCache(nil))
+	if err != ErrBadgeMissingID {
+		t.Errorf("expected ErrBadgeMissingID, got %v", err)
 	}
 }
 
@@ -34,10 +46,15 @@ func TestLnlBadge_toJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
 	props := map[string]any{
 		"ID":         float64(7),
 		"BADGEKEY":   float64(1001),
+		"STATUS":     float64(1),
+		"TYPE":       float64(1),
 		"ACTIVATE":   "2025-01-01",
 		"DEACTIVATE": "2026-12-31",
 	}
-	badge := NewLnlBadge(props, nil)
+	badge, err := NewLnlBadge(props, newTestCache())
+	if err != nil {
+		t.Fatal(err)
+	}
 	j := badge.ToJSON()
 
 	if j["type_name"] != "Lnl_Badge" {
@@ -62,8 +79,13 @@ func TestLnlBadge_toJSON_shouldPutNilForAbsentDates(t *testing.T) {
 	props := map[string]any{
 		"ID":       float64(3),
 		"BADGEKEY": float64(42),
+		"STATUS":   float64(1),
+		"TYPE":     float64(1),
 	}
-	badge := NewLnlBadge(props, nil)
+	badge, err := NewLnlBadge(props, newTestCache())
+	if err != nil {
+		t.Fatal(err)
+	}
 	j := badge.ToJSON()
 
 	pvm, ok := j["property_value_map"].(map[string]any)
@@ -111,38 +133,6 @@ func TestLnlAccessLevel_fromProps_shouldParseNameAndID(t *testing.T) {
 	}
 }
 
-func TestLnlAccessLevel_toJSON_shouldCreateCorrectStructure(t *testing.T) {
-	al := &LnlAccessLevel{ID: 7, Name: "Lobby"}
-	j := al.ToJSON()
-
-	pvm, ok := j["property_value_map"].(map[string]any)
-	if !ok {
-		t.Fatal("expected property_value_map to be a map")
-	}
-	if pvm["ID"] != 7 {
-		t.Errorf("expected ID 7, got %v", pvm["ID"])
-	}
-	if pvm["Name"] != "Lobby" {
-		t.Errorf("expected Name 'Lobby', got %v", pvm["Name"])
-	}
-}
-
-func TestLnlAccessLevel_roundTrip_shouldPreserveData(t *testing.T) {
-	original := &LnlAccessLevel{ID: 42, Name: "Server Room"}
-	j := original.ToJSON()
-	pvm := j["property_value_map"].(map[string]any)
-
-	restored, err := NewLnlAccessLevel(pvm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if restored.ID != original.ID {
-		t.Errorf("expected ID %d, got %d", original.ID, restored.ID)
-	}
-	if restored.Name != original.Name {
-		t.Errorf("expected Name %q, got %q", original.Name, restored.Name)
-	}
-}
 
 // ---- propDate / dateStr symmetry ----
 

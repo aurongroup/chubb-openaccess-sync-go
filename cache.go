@@ -26,9 +26,9 @@ type DataCache struct {
 	cardholderList  []*LnlCardholder
 	badgeStatusList []*LnlBadgeStatus
 	badgeTypeList   []*LnlBadgeType
-	assignments     []LnlAccessLevelAssignment
+	assignments     []*LnlAccessLevelAssignment
 
-	records []AccessRecord
+	records []*AccessRecord
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.
@@ -44,12 +44,29 @@ func NewDataCache(client *Client) *DataCache {
 	}
 }
 
-func (c *DataCache) GetAccessLevel(id int) *LnlAccessLevel { return c.accessLevels[id] }
-func (c *DataCache) GetBadge(id int) *LnlBadge             { return c.badges[id] }
-func (c *DataCache) GetBadgeByKey(key int) *LnlBadge       { return c.badgeByKey[key] }
-func (c *DataCache) GetBadgeStatus(id int) *LnlBadgeStatus { return c.statuses[id] }
-func (c *DataCache) GetBadgeType(id int) *LnlBadgeType     { return c.badgeTypes[id] }
-func (c *DataCache) GetCardholder(id int) *LnlCardholder   { return c.cardholders[id] }
+func (c *DataCache) GetAccessLevel(id int) *LnlAccessLevel {
+	return c.accessLevels[id]
+}
+
+func (c *DataCache) GetBadge(id int) *LnlBadge {
+	return c.badges[id]
+}
+
+func (c *DataCache) GetBadgeByKey(key int) *LnlBadge {
+	return c.badgeByKey[key]
+}
+
+func (c *DataCache) GetBadgeStatus(id int) *LnlBadgeStatus {
+	return c.statuses[id]
+}
+
+func (c *DataCache) GetBadgeType(id int) *LnlBadgeType {
+	return c.badgeTypes[id]
+}
+
+func (c *DataCache) GetCardholder(id int) *LnlCardholder {
+	return c.cardholders[id]
+}
 
 // Fill fetches all data from the API in the required order.
 // References (status, type, cardholder on badges; badge and access level on
@@ -58,22 +75,29 @@ func (c *DataCache) Fill() error {
 	if err := c.fillAccessLevels(); err != nil {
 		return err
 	}
+
 	if err := c.fillBadgeStatuses(); err != nil {
 		return err
 	}
+
 	if err := c.fillBadgeTypes(); err != nil {
 		return err
 	}
+
 	if err := c.fillCardholders(); err != nil {
 		return err
 	}
+
 	if err := c.fillBadges(); err != nil {
 		return err
 	}
+
 	if err := c.fillAssignments(); err != nil {
 		return err
 	}
+
 	c.records = c.buildAccessRecordList()
+
 	return nil
 }
 
@@ -90,6 +114,7 @@ func (c *DataCache) fetchWithProgress(typeName, filter string) ([]map[string]any
 		if err != nil {
 			return nil, err
 		}
+
 		if bar == nil {
 			bar = progressbar.NewOptions(totalPages,
 				progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
@@ -108,7 +133,9 @@ func (c *DataCache) fetchWithProgress(typeName, filter string) ([]map[string]any
 			)
 		}
 		_ = bar.Add(1)
+
 		all = append(all, items...)
+
 		if page >= totalPages {
 			break
 		}
@@ -125,15 +152,18 @@ func (c *DataCache) fillAccessLevels() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
 		al, err := NewLnlAccessLevel(props)
 		if err != nil {
 			log.Printf("skipping Lnl_AccessLevel: %v", err)
 			continue
 		}
+
 		c.accessLevels[al.ID] = al
 		c.accessLevelList = append(c.accessLevelList, al)
 	}
+
 	log.Printf("Retrieved %d Lnl_AccessLevel records", len(c.accessLevelList))
 	return nil
 }
@@ -143,11 +173,18 @@ func (c *DataCache) fillBadgeStatuses() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
-		s := NewLnlBadgeStatus(props)
+		s, err := NewLnlBadgeStatus(props)
+		if err != nil {
+			log.Printf("skipping Lnl_BadgeStatus: %v", err)
+			continue
+		}
+
 		c.statuses[s.ID] = s
 		c.badgeStatusList = append(c.badgeStatusList, s)
 	}
+
 	log.Printf("Retrieved %d Lnl_BadgeStatus records", len(c.badgeStatusList))
 	return nil
 }
@@ -157,11 +194,18 @@ func (c *DataCache) fillBadgeTypes() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
-		t := NewLnlBadgeType(props)
+		t, err := NewLnlBadgeType(props)
+		if err != nil {
+			log.Printf("skipping Lnl_BadgeType: %v", err)
+			continue
+		}
+
 		c.badgeTypes[t.ID] = t
 		c.badgeTypeList = append(c.badgeTypeList, t)
 	}
+
 	log.Printf("Retrieved %d Lnl_BadgeType records", len(c.badgeTypeList))
 	return nil
 }
@@ -171,11 +215,18 @@ func (c *DataCache) fillCardholders() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
-		ch := NewLnlCardholder(props)
+		ch, err := NewLnlCardholder(props)
+		if err != nil {
+			log.Printf("skipping Lnl_Cardholder: %v", err)
+			continue
+		}
+
 		c.cardholders[ch.ID] = ch
 		c.cardholderList = append(c.cardholderList, ch)
 	}
+
 	log.Printf("Retrieved %d Lnl_Cardholder records", len(c.cardholderList))
 	return nil
 }
@@ -185,8 +236,14 @@ func (c *DataCache) fillBadges() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
-		b := NewLnlBadge(props, c)
+		b, err := NewLnlBadge(props, c)
+		if err != nil {
+			log.Printf("skipping Lnl_Badge: %v", err)
+			continue
+		}
+
 		c.badges[b.ID] = b
 		c.badgeByKey[b.BadgeKey] = b
 		c.badgeList = append(c.badgeList, b)
@@ -200,11 +257,15 @@ func (c *DataCache) fillAssignments() error {
 	if err != nil {
 		return err
 	}
+
 	for _, props := range items {
-		a := NewLnlAccessLevelAssignment(props, c)
-		if a.AccessLevel != nil && a.Badge != nil {
-			c.assignments = append(c.assignments, *a)
+		a, err := NewLnlAccessLevelAssignment(props, c)
+		if err != nil {
+			log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
+			continue
 		}
+
+		c.assignments = append(c.assignments, a)
 	}
 	log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
 	return nil
@@ -214,19 +275,29 @@ func (c *DataCache) fillAssignments() error {
 // in assignment order.
 func (c *DataCache) accessLevelsByBadge() map[int][]*LnlAccessLevel {
 	m := make(map[int][]*LnlAccessLevel)
+
 	for _, a := range c.assignments {
 		m[a.Badge.ID] = append(m[a.Badge.ID], a.AccessLevel)
 	}
+
 	return m
 }
 
 // buildAccessRecordList groups assignments by badge ID and creates one
 // AccessRecord per badge, matching Java's DataCache.buildAccessRecordList().
-func (c *DataCache) buildAccessRecordList() []AccessRecord {
+func (c *DataCache) buildAccessRecordList() []*AccessRecord {
 	levelsByBadgeID := c.accessLevelsByBadge()
-	records := make([]AccessRecord, 0, len(c.badgeList))
+	records := make([]*AccessRecord, 0, len(c.badgeList))
+
 	for _, badge := range c.badgeList {
-		records = append(records, accessRecordFromBadge(badge, levelsByBadgeID[badge.ID]))
+		r, err := badge.ToAccessRecord(levelsByBadgeID[badge.ID])
+		if err != nil {
+			log.Printf("skipping access record for badge %d: %v", badge.ID, err)
+			continue
+		}
+
+		records = append(records, r)
 	}
+
 	return records
 }

@@ -64,34 +64,48 @@ func TestParseCSV_shouldHandleEmptyAccessLevels(t *testing.T) {
 // ---- CompareRecords tests ----
 
 func TestCompareRecords_shouldMarkNewRecord(t *testing.T) {
-	csv := []AccessRecord{{BadgeID: "100", SSNO: "A"}}
-	api := []AccessRecord{}
-	result := CompareRecords(csv, api)
+	r, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{})
 	if len(result) != 1 || result[0].SyncStatus != SyncNew {
 		t.Errorf("expected 1 NEW record, got %v", result)
 	}
 }
 
 func TestCompareRecords_shouldMarkExistingRecord(t *testing.T) {
-	r := AccessRecord{BadgeID: "100", SSNO: "A", First: "Bob", Status: "active", BadgeType: "Employee"}
-	result := CompareRecords([]AccessRecord{r}, []AccessRecord{r})
+	r, err := NewAccessRecord("A", "Bob", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{r})
 	if len(result) != 1 || result[0].SyncStatus != SyncExisting {
 		t.Errorf("expected 1 EXISTING record, got %v", result)
 	}
 }
 
 func TestCompareRecords_shouldMarkUpdatedRecord(t *testing.T) {
-	csv := AccessRecord{BadgeID: "100", SSNO: "A", First: "New"}
-	api := AccessRecord{BadgeID: "100", SSNO: "A", First: "Old"}
-	result := CompareRecords([]AccessRecord{csv}, []AccessRecord{api})
+	csvRec, err := NewAccessRecord("A", "New", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiRec, err := NewAccessRecord("A", "Old", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CompareRecords([]*AccessRecord{csvRec}, []*AccessRecord{apiRec})
 	if len(result) != 1 || result[0].SyncStatus != SyncUpdate {
 		t.Errorf("expected 1 UPDATE record, got %v", result)
 	}
 }
 
 func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
-	api := []AccessRecord{{BadgeID: "100", SSNO: "A"}}
-	result := CompareRecords([]AccessRecord{}, api)
+	r, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CompareRecords([]*AccessRecord{}, []*AccessRecord{r})
 	if len(result) != 1 || result[0].SyncStatus != SyncDelete {
 		t.Errorf("expected 1 DELETE record, got %v", result)
 	}
