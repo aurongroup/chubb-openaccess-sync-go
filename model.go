@@ -5,6 +5,47 @@ import (
 	"time"
 )
 
+// AccessRecord represents a single row in the pipe-delimited access control CSV.
+type AccessRecord struct {
+	SSNO         string
+	First        string
+	Last         string
+	AccLvl1      string
+	AccLvl2      string
+	AccLvl3      string
+	AccLvl4      string
+	AccLvl5      string
+	AccLvl6      string
+	BadgeID      string
+	Activate     *time.Time
+	Deactivate   *time.Time
+	Status       string
+	BadgeType    string
+	Badge        *LnlBadge
+	AccessLevels []*LnlAccessLevel
+	SyncStatus   SyncStatus
+}
+
+// ToRow converts an AccessRecord to a slice of strings for CSV output.
+func (r *AccessRecord) ToRow() []string {
+	return []string{
+		r.SSNO,
+		r.First,
+		r.Last,
+		r.AccLvl1,
+		r.AccLvl2,
+		r.AccLvl3,
+		r.AccLvl4,
+		r.AccLvl5,
+		r.AccLvl6,
+		r.BadgeID,
+		formatDate(r.Activate),
+		formatDate(r.Deactivate),
+		r.Status,
+		r.BadgeType,
+	}
+}
+
 // LnlBadgeStatus represents a badge status from the OpenAccess API.
 type LnlBadgeStatus struct {
 	ID   int
@@ -28,6 +69,48 @@ func NewLnlBadgeType(props map[string]any) *LnlBadgeType {
 	return &LnlBadgeType{
 		ID:   propInt(props, "ID"),
 		Name: propStr(props, "Name"),
+	}
+}
+
+// FromBadge builds an AccessRecord from an API badge and its access levels.
+func (badge *LnlBadge) FromBadge(accessLevels []*LnlAccessLevel) AccessRecord {
+	var ssno, first, last string
+	if badge.Cardholder != nil {
+		ssno = badge.Cardholder.SSNO
+		first = badge.Cardholder.FirstName
+		last = badge.Cardholder.LastName
+	}
+
+	lvl := [6]string{}
+	for i := 0; i < len(accessLevels) && i < 6; i++ {
+		lvl[i] = accessLevels[i].Name
+	}
+
+	var status, badgeType string
+	if badge.Status != nil {
+		status = badge.Status.Name
+	}
+	if badge.Type != nil {
+		badgeType = badge.Type.Name
+	}
+
+	return AccessRecord{
+		SSNO:         ssno,
+		First:        first,
+		Last:         last,
+		AccLvl1:      lvl[0],
+		AccLvl2:      lvl[1],
+		AccLvl3:      lvl[2],
+		AccLvl4:      lvl[3],
+		AccLvl5:      lvl[4],
+		AccLvl6:      lvl[5],
+		BadgeID:      fmt.Sprintf("%d", badge.ID),
+		Activate:     badge.Activate,
+		Deactivate:   badge.Deactivate,
+		Status:       status,
+		BadgeType:    badgeType,
+		Badge:        badge,
+		AccessLevels: accessLevels,
 	}
 }
 
@@ -109,13 +192,13 @@ func NewLnlBadge(props map[string]any, cache *DataCache) *LnlBadge {
 }
 
 // ToJSON returns the API wire format map for a badge.
-func (b *LnlBadge) ToJSON() map[string]any {
+func (badge *LnlBadge) ToJSON() map[string]any {
 	return map[string]any{
 		"type_name": "Lnl_Badge",
 		"property_value_map": map[string]any{
-			"badgeKey":   b.BadgeKey,
-			"activate":   dateStr(b.Activate),
-			"deactivate": dateStr(b.Deactivate),
+			"badgeKey":   badge.BadgeKey,
+			"activate":   dateStr(badge.Activate),
+			"deactivate": dateStr(badge.Deactivate),
 		},
 	}
 }
@@ -137,29 +220,4 @@ func NewLnlAccessLevelAssignment(props map[string]any, cache *DataCache) *LnlAcc
 		}
 	}
 	return a
-}
-
-// AccessRecord represents a single row in the pipe-delimited access control CSV.
-type AccessRecord struct {
-	SSNO, First, Last         string
-	AccLvl1, AccLvl2, AccLvl3 string
-	AccLvl4, AccLvl5, AccLvl6 string
-	BadgeID                   string
-	Activate, Deactivate      *time.Time
-	Status, BadgeType         string
-	Badge                     *LnlBadge
-	AccessLevels              []*LnlAccessLevel
-	SyncStatus                SyncStatus
-}
-
-// ToRow converts an AccessRecord to a slice of strings for CSV output.
-func (r *AccessRecord) ToRow() []string {
-	return []string{
-		r.SSNO, r.First, r.Last,
-		r.AccLvl1, r.AccLvl2, r.AccLvl3, r.AccLvl4, r.AccLvl5, r.AccLvl6,
-		r.BadgeID,
-		formatDate(r.Activate),
-		formatDate(r.Deactivate),
-		r.Status, r.BadgeType,
-	}
 }
