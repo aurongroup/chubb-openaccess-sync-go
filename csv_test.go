@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -116,6 +118,70 @@ func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
 	result := CompareRecords([]*AccessRecord{}, []*AccessRecord{r})
 	if len(result) != 1 || result[0].SyncStatus != SyncDelete {
 		t.Errorf("expected 1 DELETE record, got %v", result)
+	}
+}
+
+// ---- PrintCSVReport ----
+
+func TestPrintCSVReport_shouldWriteReadableCSV(t *testing.T) {
+	activate := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
+	deactivate := time.Date(2020, 9, 12, 0, 0, 0, 0, time.UTC)
+	r1, err := NewAccessRecord("8274", "BOB", "BROWN", "Coffee Fresh", "OTIS", "", "", "", "", "9017", &activate, &deactivate, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2, err := NewAccessRecord("1234", "Tim", "Smith", "DALKIA", "", "", "", "", "", "1923", nil, nil, "active", "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.CreateTemp("", "report-*.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	f.Close()
+
+	if err := PrintCSVReport([]*AccessRecord{r1, r2}, f.Name()); err != nil {
+		t.Fatal(err)
+	}
+
+	records, err := ParseCSV(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("expected 2 records, got %d", len(records))
+	}
+	assertStr(t, "r1.SSNO", "8274", records[0].SSNO)
+	assertStr(t, "r1.Last", "BROWN", records[0].Last)
+	assertStr(t, "r1.AccLvl1", "Coffee Fresh", records[0].AccLvl1)
+	assertStr(t, "r1.AccLvl2", "OTIS", records[0].AccLvl2)
+	assertDate(t, "r1.Activate", activate, records[0].Activate)
+	assertStr(t, "r2.SSNO", "1234", records[1].SSNO)
+	assertStr(t, "r2.AccLvl1", "DALKIA", records[1].AccLvl1)
+}
+
+func TestPrintCSVReport_shouldWriteCorrectHeader(t *testing.T) {
+	f, err := os.CreateTemp("", "report-*.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	f.Close()
+
+	if err := PrintCSVReport([]*AccessRecord{}, f.Name()); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstLine := strings.Split(string(data), "\n")[0]
+	want := "ssno|first|last|acc_lvl1|acc_lvl2|acc_lvl3|acc_lvl4|acc_lvl5|acc_lvl6|badgeid|activate|deactivate|status|badge type"
+	if firstLine != want {
+		t.Errorf("header: expected %q, got %q", want, firstLine)
 	}
 }
 
