@@ -11,6 +11,7 @@ func formatDate(t *time.Time) string {
 	if t == nil {
 		return ""
 	}
+
 	return t.Format("1/2/2006")
 }
 
@@ -19,10 +20,12 @@ func parseDate(s string) *time.Time {
 	if strings.TrimSpace(s) == "" {
 		return nil
 	}
+
 	t, err := time.Parse("1/2/2006", s)
 	if err != nil {
 		return nil
 	}
+
 	return &t
 }
 
@@ -31,6 +34,7 @@ func isValidURL(s string) bool {
 	if err != nil {
 		return false
 	}
+
 	return u.Host != ""
 }
 
@@ -41,6 +45,7 @@ func propInt(m map[string]any, key string) int {
 	if !ok || v == nil {
 		return 0
 	}
+
 	switch n := v.(type) {
 	case float64:
 		return int(n)
@@ -49,6 +54,7 @@ func propInt(m map[string]any, key string) int {
 	case int64:
 		return int(n)
 	}
+
 	return 0
 }
 
@@ -58,7 +64,9 @@ func propStr(m map[string]any, key string) string {
 	if !ok || v == nil {
 		return ""
 	}
+
 	s, _ := v.(string)
+
 	return s
 }
 
@@ -68,10 +76,12 @@ func propDate(m map[string]any, key string) *time.Time {
 	if s == "" {
 		return nil
 	}
+
 	t, err := time.Parse("2006-01-02", s)
 	if err != nil {
 		return nil
 	}
+
 	return &t
 }
 
@@ -81,5 +91,6 @@ func dateStr(t *time.Time) any {
 	if t == nil {
 		return nil
 	}
+
 	return t.Format("2006-01-02")
 }

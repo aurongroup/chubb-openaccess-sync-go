@@ -10,6 +10,7 @@ func TestParseCSV_shouldParseAllRecords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(records) != 2 {
 		t.Errorf("expected 2 records, got %d", len(records))
 	}
@@ -20,6 +21,7 @@ func TestParseCSV_shouldParseFirstRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	r := records[0]
 
 	assertStr(t, "SSNO", "8274", r.SSNO)
@@ -43,6 +45,7 @@ func TestParseCSV_shouldHandleEmptyAccessLevels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	r := records[1]
 
 	assertStr(t, "SSNO", "1234", r.SSNO)
@@ -68,6 +71,7 @@ func TestCompareRecords_shouldMarkNewRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{})
 	if len(result) != 1 || result[0].SyncStatus != SyncNew {
 		t.Errorf("expected 1 NEW record, got %v", result)
@@ -79,6 +83,7 @@ func TestCompareRecords_shouldMarkExistingRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{r})
 	if len(result) != 1 || result[0].SyncStatus != SyncExisting {
 		t.Errorf("expected 1 EXISTING record, got %v", result)
@@ -90,10 +95,12 @@ func TestCompareRecords_shouldMarkUpdatedRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	apiRec, err := NewAccessRecord("A", "Old", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	result := CompareRecords([]*AccessRecord{csvRec}, []*AccessRecord{apiRec})
 	if len(result) != 1 || result[0].SyncStatus != SyncUpdate {
 		t.Errorf("expected 1 UPDATE record, got %v", result)
@@ -105,6 +112,7 @@ func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	result := CompareRecords([]*AccessRecord{}, []*AccessRecord{r})
 	if len(result) != 1 || result[0].SyncStatus != SyncDelete {
 		t.Errorf("expected 1 DELETE record, got %v", result)
@@ -126,6 +134,7 @@ func assertDate(t *testing.T, field string, want time.Time, got *time.Time) {
 		t.Errorf("%s: expected %v, got nil", field, want)
 		return
 	}
+
 	if !got.Equal(want) {
 		t.Errorf("%s: expected %v, got %v", field, want, *got)
 	}

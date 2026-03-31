@@ -19,15 +19,19 @@ func ExportXLSX(cache *DataCache, path string) error {
 	if err := writeBadgesSheet(f, cache, bold); err != nil {
 		return err
 	}
+
 	if err := writeCardholdersSheet(f, cache, bold); err != nil {
 		return err
 	}
+
 	if err := writeAccessLevelsSheet(f, cache, bold); err != nil {
 		return err
 	}
+
 	if err := writeBadgeTypesSheet(f, cache, bold); err != nil {
 		return err
 	}
+
 	if err := writeBadgeStatusesSheet(f, cache, bold); err != nil {
 		return err
 	}
@@ -45,9 +49,11 @@ func cell(col, row int) string {
 func writeHeader(f *excelize.File, sheet string, headers []string, style int) error {
 	for i, h := range headers {
 		c := cell(i+1, 1)
+
 		if err := f.SetCellValue(sheet, c, h); err != nil {
 			return err
 		}
+
 		if err := f.SetCellStyle(sheet, c, c, style); err != nil {
 			return err
 		}
@@ -60,11 +66,13 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
+
 	headers := []string{
 		"ID", "Badge Key", "Activate", "Deactivate", "Status", "Type", "Cardholder SSNO",
 		"Access Level 1", "Access Level 2", "Access Level 3",
 		"Access Level 4", "Access Level 5", "Access Level 6",
 	}
+
 	if err := writeHeader(f, sheet, headers, style); err != nil {
 		return err
 	}
@@ -82,7 +90,9 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 			badgeTypeName(badge),
 			cardholderSSNO(badge),
 		}
+
 		levels := levelsByBadgeID[badge.ID]
+
 		for j := 0; j < 6; j++ {
 			if j < len(levels) {
 				vals = append(vals, levels[j].Name)
@@ -90,6 +100,7 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 				vals = append(vals, "")
 			}
 		}
+
 		for col, v := range vals {
 			if err := f.SetCellValue(sheet, cell(col+1, row), v); err != nil {
 				return err
@@ -101,12 +112,15 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 
 func writeCardholdersSheet(f *excelize.File, cache *DataCache, style int) error {
 	const sheet = "cardholders"
+
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
+
 	if err := writeHeader(f, sheet, []string{"ID", "SSNO", "First Name", "Last Name"}, style); err != nil {
 		return err
 	}
+
 	for i, ch := range cache.cardholderList {
 		row := i + 2
 		for col, v := range []any{ch.ID, ch.SSNO, ch.FirstName, ch.LastName} {
@@ -120,32 +134,40 @@ func writeCardholdersSheet(f *excelize.File, cache *DataCache, style int) error 
 
 func writeAccessLevelsSheet(f *excelize.File, cache *DataCache, style int) error {
 	const sheet = "access levels"
+
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
+
 	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
 		return err
 	}
+
 	for i, al := range cache.accessLevelList {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), al.ID); err != nil {
 			return err
 		}
+
 		if err := f.SetCellValue(sheet, cell(2, row), al.Name); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func writeBadgeTypesSheet(f *excelize.File, cache *DataCache, style int) error {
 	const sheet = "badge types"
+
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
+
 	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
 		return err
 	}
+
 	for i, bt := range cache.badgeTypeList {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), bt.ID); err != nil {
@@ -155,26 +177,32 @@ func writeBadgeTypesSheet(f *excelize.File, cache *DataCache, style int) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func writeBadgeStatusesSheet(f *excelize.File, cache *DataCache, style int) error {
 	const sheet = "badge status"
+
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
+
 	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
 		return err
 	}
+
 	for i, bs := range cache.badgeStatusList {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), bs.ID); err != nil {
 			return err
 		}
+
 		if err := f.SetCellValue(sheet, cell(2, row), bs.Name); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -182,6 +210,7 @@ func badgeStatusName(b *LnlBadge) string {
 	if b.Status != nil {
 		return b.Status.Name
 	}
+
 	return ""
 }
 
@@ -189,6 +218,7 @@ func badgeTypeName(b *LnlBadge) string {
 	if b.Type != nil {
 		return b.Type.Name
 	}
+
 	return ""
 }
 
@@ -196,5 +226,6 @@ func cardholderSSNO(b *LnlBadge) string {
 	if b.Cardholder != nil {
 		return b.Cardholder.SSNO
 	}
+
 	return ""
 }

@@ -245,6 +245,7 @@ func NewLnlBadge(props map[string]any, cache *DataCache) (*LnlBadge, error) {
 	if statusID == 0 {
 		return nil, ErrBadgeUnresolvedStatus
 	}
+
 	b.Status = cache.GetBadgeStatus(statusID)
 	if b.Status == nil {
 		return nil, ErrBadgeUnresolvedStatus
@@ -254,6 +255,7 @@ func NewLnlBadge(props map[string]any, cache *DataCache) (*LnlBadge, error) {
 	if typeID == 0 {
 		return nil, ErrBadgeUnresolvedType
 	}
+
 	b.Type = cache.GetBadgeType(typeID)
 	if b.Type == nil {
 		return nil, ErrBadgeUnresolvedType
@@ -262,6 +264,7 @@ func NewLnlBadge(props map[string]any, cache *DataCache) (*LnlBadge, error) {
 	if personID := propInt(props, "PERSONID"); personID != 0 {
 		b.Cardholder = cache.GetCardholder(personID)
 	}
+
 	return b, nil
 }
 
@@ -330,6 +333,7 @@ func NewLnlAccessLevelAssignment(props map[string]any, cache *DataCache) (*LnlAc
 	if alID := propInt(props, "AccessLevelID"); alID != 0 {
 		a.AccessLevel = cache.GetAccessLevel(alID)
 	}
+
 	if a.AccessLevel == nil {
 		return nil, ErrAssignmentUnresolvedAccessLevel
 	}
@@ -337,6 +341,7 @@ func NewLnlAccessLevelAssignment(props map[string]any, cache *DataCache) (*LnlAc
 	if badgeKey := propInt(props, "BadgeKey"); badgeKey != 0 {
 		a.Badge = cache.GetBadgeByKey(badgeKey)
 	}
+
 	if a.Badge == nil {
 		return nil, ErrAssignmentUnresolvedBadge
 	}
