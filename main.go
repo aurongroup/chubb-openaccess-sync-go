@@ -36,35 +36,40 @@ func main() {
 		log.Fatalf("Failed to load API data: %v", err)
 	}
 
-	if err := dispatch(cfg, cache); err != nil {
-		log.Fatalf("Operation failed: %v", err)
-	}
-}
-
-func dispatch(cfg AppConfig, cache *DataCache) error {
 	switch {
 	case cfg.ExportFile != "":
-		return PrintCSVReport(cache.records, cfg.ExportFile)
+		err = PrintCSVReport(cache.records, cfg.ExportFile)
+		if err != nil {
+			log.Fatalf("Operation failed: %v", err)
+		}
+		break
 
 	case cfg.InputFile != "":
 		csvValues, err := ParseCSV(cfg.InputFile)
 		if err != nil {
-			return err
+			log.Fatalf("Operation failed: %v", err)
 		}
+
 		csvRecords := make([]*AccessRecord, len(csvValues))
 		for i := range csvValues {
 			csvRecords[i] = &csvValues[i]
 		}
+
 		result := CompareRecords(csvRecords, cache.records)
 		for _, r := range result {
 			log.Printf("sync status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
 		}
+		break
 
 	case cfg.Cleanup:
 		log.Println("cleanup not yet implemented")
+		break
 
 	case cfg.FullExportFile != "":
-		return ExportXLSX(cache, cfg.FullExportFile)
+		err = ExportXLSX(cache, cfg.FullExportFile)
+		if err != nil {
+			log.Fatalf("Operation failed: %v", err)
+		}
+		break
 	}
-	return nil
 }
