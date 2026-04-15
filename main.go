@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log"
 	"os"
 
@@ -55,9 +56,18 @@ func main() {
 			csvRecords[i] = &csvValues[i]
 		}
 
-		result := CompareRecords(csvRecords, cache.records)
+		var diffWriter io.Writer
+		if cfg.DiffFile != "" {
+			f, err := os.Create(cfg.DiffFile)
+			if err != nil {
+				log.Fatalf("Failed to open diff file: %v", err)
+			}
+			defer f.Close()
+			diffWriter = f
+		}
+		result := CompareRecords(csvRecords, cache.records, diffWriter)
 		for _, r := range result {
-			log.Printf("sync status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
+			log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
 		}
 		break
 

@@ -1,6 +1,7 @@
 openaccess-sync
 openaccess-sync.exe
 syncconfig.properties
+diff.txt
 *.csv
 *.xlsx
 .idea/

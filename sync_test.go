@@ -12,7 +12,7 @@ func TestContentEquals_shouldReturnTrueForIdenticalRecords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !ContentEquals(r, r) {
+	if !ContentEquals(r, r, nil) {
 		t.Error("expected ContentEquals to return true for the same record")
 	}
 }
@@ -25,7 +25,7 @@ func TestContentEquals_shouldReturnFalseWhenFieldDiffers(t *testing.T) {
 		}
 		return r
 	}
-	if ContentEquals(base("Bob"), base("Alice")) {
+	if ContentEquals(base("Bob"), base("Alice"), nil) {
 		t.Error("expected false when First differs")
 	}
 }
@@ -40,7 +40,7 @@ func TestContentEquals_shouldCompareDatesCorrectly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !ContentEquals(r1, r2) {
+	if !ContentEquals(r1, r2, nil) {
 		t.Error("expected true for records with equal date values")
 	}
 }
@@ -55,7 +55,7 @@ func TestContentEquals_shouldReturnFalseWhenOneDateNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ContentEquals(r1, r2) {
+	if ContentEquals(r1, r2, nil) {
 		t.Error("expected false when one Activate is nil and the other is set")
 	}
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"time"
 )
 
@@ -29,21 +31,60 @@ func (s SyncStatus) String() string {
 }
 
 // ContentEquals returns true if two AccessRecords have identical content across all 14 fields.
-func ContentEquals(a, b *AccessRecord) bool {
-	return a.SSNO == b.SSNO &&
-		a.First == b.First &&
-		a.Last == b.Last &&
-		a.AccLvl1 == b.AccLvl1 &&
-		a.AccLvl2 == b.AccLvl2 &&
-		a.AccLvl3 == b.AccLvl3 &&
-		a.AccLvl4 == b.AccLvl4 &&
-		a.AccLvl5 == b.AccLvl5 &&
-		a.AccLvl6 == b.AccLvl6 &&
-		a.BadgeID == b.BadgeID &&
-		dateEqual(a.Activate, b.Activate) &&
-		dateEqual(a.Deactivate, b.Deactivate) &&
-		a.Status == b.Status &&
-		a.BadgeType == b.BadgeType
+func ContentEquals(a, b *AccessRecord, w io.Writer) bool {
+	var diffs []string
+
+	if a.SSNO != b.SSNO {
+		diffs = append(diffs, fmt.Sprintf("SSNO: %q != %q", a.SSNO, b.SSNO))
+	}
+	if a.First != b.First {
+		diffs = append(diffs, fmt.Sprintf("First: %q != %q", a.First, b.First))
+	}
+	if a.Last != b.Last {
+		diffs = append(diffs, fmt.Sprintf("Last: %q != %q", a.Last, b.Last))
+	}
+	if a.AccLvl1 != b.AccLvl1 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl1: %q != %q", a.AccLvl1, b.AccLvl1))
+	}
+	if a.AccLvl2 != b.AccLvl2 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl2: %q != %q", a.AccLvl2, b.AccLvl2))
+	}
+	if a.AccLvl3 != b.AccLvl3 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl3: %q != %q", a.AccLvl3, b.AccLvl3))
+	}
+	if a.AccLvl4 != b.AccLvl4 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl4: %q != %q", a.AccLvl4, b.AccLvl4))
+	}
+	if a.AccLvl5 != b.AccLvl5 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl5: %q != %q", a.AccLvl5, b.AccLvl5))
+	}
+	if a.AccLvl6 != b.AccLvl6 {
+		diffs = append(diffs, fmt.Sprintf("AccLvl6: %q != %q", a.AccLvl6, b.AccLvl6))
+	}
+	if a.BadgeID != b.BadgeID {
+		diffs = append(diffs, fmt.Sprintf("BadgeID: %q != %q", a.BadgeID, b.BadgeID))
+	}
+	if !dateEqual(a.Activate, b.Activate) {
+		diffs = append(diffs, fmt.Sprintf("Activate: %v != %v", a.Activate, b.Activate))
+	}
+	if !dateEqual(a.Deactivate, b.Deactivate) {
+		diffs = append(diffs, fmt.Sprintf("Deactivate: %v != %v", a.Deactivate, b.Deactivate))
+	}
+	if a.Status != b.Status {
+		diffs = append(diffs, fmt.Sprintf("Status: %q != %q", a.Status, b.Status))
+	}
+	if a.BadgeType != b.BadgeType {
+		diffs = append(diffs, fmt.Sprintf("BadgeType: %q != %q", a.BadgeType, b.BadgeType))
+	}
+
+	if len(diffs) > 0 {
+		if w != nil {
+			fmt.Fprintf(w, "ContentEquals differences for BadgeID %s: %v\n", a.BadgeID, diffs)
+		}
+		return false
+	}
+
+	return true
 }
 
 func dateEqual(a, b *time.Time) bool {
@@ -61,7 +102,7 @@ func dateEqual(a, b *time.Time) bool {
 // CompareRecords classifies each record in first against second:
 // NEW if absent from second, EXISTING if content matches, UPDATE if different.
 // If a record in second is not in first it is marked DELETE.
-func CompareRecords(first, second []*AccessRecord) []*AccessRecord {
+func CompareRecords(first, second []*AccessRecord, w io.Writer) []*AccessRecord {
 	secondByID := make(map[string]*AccessRecord, len(second))
 	for _, r := range second {
 		secondByID[r.BadgeID] = r
@@ -75,7 +116,7 @@ func CompareRecords(first, second []*AccessRecord) []*AccessRecord {
 
 		if s, ok := secondByID[r.BadgeID]; !ok {
 			r.SyncStatus = SyncNew
-		} else if ContentEquals(r, s) {
+		} else if ContentEquals(r, s, w) {
 			r.SyncStatus = SyncExisting
 		} else {
 			r.SyncStatus = SyncUpdate

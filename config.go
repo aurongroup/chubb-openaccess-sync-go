@@ -27,6 +27,7 @@ type AppConfig struct {
 	InputFile      string
 	Cleanup        bool
 	FullExportFile string
+	DiffFile       string
 }
 
 // Validate returns an error if any required field is missing or invalid.
@@ -64,7 +65,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	var endpoint, application, user, password, directory string
 	var insecureStr string
 	var pageSize int
-	var exportFile, inputFile, fullExportFile string
+	var exportFile, inputFile, fullExportFile, diffFile string
 	var cleanup bool
 
 	fs.StringVarP(&configFile, "config", "c", "", "Configuration file")
@@ -79,6 +80,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&inputFile, "inputfile", "i", "", "Input CSV file path")
 	fs.BoolVarP(&cleanup, "cleanup", "k", false, "Cleanup")
 	fs.StringVarP(&fullExportFile, "fullexport", "X", "", "Full XLSX export file path")
+	fs.StringVarP(&diffFile, "diff", "D", "", "File to write ContentEquals diff output for debugging")
 
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "Usage of openaccess-sync:\n")
@@ -150,6 +152,9 @@ func parseConfig(args []string) (AppConfig, error) {
 	}
 	if fs.Changed("fullexport") {
 		cfg.FullExportFile = fullExportFile
+	}
+	if fs.Changed("diff") {
+		cfg.DiffFile = diffFile
 	}
 
 	// Require exactly one mode flag

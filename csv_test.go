@@ -74,7 +74,7 @@ func TestCompareRecords_shouldMarkNewRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{})
+	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{}, nil)
 	if len(result) != 1 || result[0].SyncStatus != SyncNew {
 		t.Errorf("expected 1 NEW record, got %v", result)
 	}
@@ -86,7 +86,7 @@ func TestCompareRecords_shouldMarkExistingRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{r})
+	result := CompareRecords([]*AccessRecord{r}, []*AccessRecord{r}, nil)
 	if len(result) != 1 || result[0].SyncStatus != SyncExisting {
 		t.Errorf("expected 1 EXISTING record, got %v", result)
 	}
@@ -103,7 +103,7 @@ func TestCompareRecords_shouldMarkUpdatedRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*AccessRecord{csvRec}, []*AccessRecord{apiRec})
+	result := CompareRecords([]*AccessRecord{csvRec}, []*AccessRecord{apiRec}, nil)
 	if len(result) != 1 || result[0].SyncStatus != SyncUpdate {
 		t.Errorf("expected 1 UPDATE record, got %v", result)
 	}
@@ -115,7 +115,7 @@ func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*AccessRecord{}, []*AccessRecord{r})
+	result := CompareRecords([]*AccessRecord{}, []*AccessRecord{r}, nil)
 	if len(result) != 1 || result[0].SyncStatus != SyncDelete {
 		t.Errorf("expected 1 DELETE record, got %v", result)
 	}
