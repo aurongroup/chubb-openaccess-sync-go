@@ -73,10 +73,10 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&user, "user", "u", "", "Username")
 	fs.StringVarP(&password, "password", "p", "", "Password")
 	fs.StringVarP(&directory, "directory", "d", "", "Directory ID")
-	fs.StringVarP(&insecureStr, "insecure", "i", "false", "Disable SSL certificate validation (true/false)")
+	fs.StringVarP(&insecureStr, "insecure", "I", "false", "Disable SSL certificate validation (true/false)")
 	fs.IntVarP(&pageSize, "pagesize", "s", DefaultPageSize, "Page size (1-100)")
 	fs.StringVarP(&exportFile, "export", "x", "", "Export CSV file path")
-	fs.StringVarP(&inputFile, "file", "f", "", "Input CSV file path")
+	fs.StringVarP(&inputFile, "inputfile", "i", "", "Input CSV file path")
 	fs.BoolVarP(&cleanup, "cleanup", "k", false, "Cleanup")
 	fs.StringVarP(&fullExportFile, "fullexport", "X", "", "Full XLSX export file path")
 
@@ -139,11 +139,11 @@ func parseConfig(args []string) (AppConfig, error) {
 			cfg.PageSize = DefaultPageSize
 		}
 	}
+	if fs.Changed("inputfile") {
+		cfg.InputFile = inputFile
+	}
 	if fs.Changed("export") {
 		cfg.ExportFile = exportFile
-	}
-	if fs.Changed("file") {
-		cfg.InputFile = inputFile
 	}
 	if fs.Changed("cleanup") {
 		cfg.Cleanup = cleanup
@@ -154,13 +154,13 @@ func parseConfig(args []string) (AppConfig, error) {
 
 	// Require exactly one mode flag
 	modeCount := 0
-	for _, flag := range []string{"export", "file", "cleanup", "fullexport"} {
+	for _, flag := range []string{"export", "inputfile", "fullexport", "cleanup"} {
 		if fs.Changed(flag) {
 			modeCount++
 		}
 	}
 	if modeCount == 0 {
-		return AppConfig{}, errors.New("one of --export (-x), --file (-f), --cleanup (-k), or --fullexport (-X) is required")
+		return AppConfig{}, errors.New("one of --inputfile (-i), --export (-x), --fullexport (-X), or --cleanup (-k) is required")
 	}
 
 	return cfg, nil
