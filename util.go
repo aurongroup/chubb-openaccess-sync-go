@@ -6,22 +6,22 @@ import (
 	"time"
 )
 
-// formatDate formats a date as dd/MM/yyyy.
+// formatDate formats a date as ISO 8601 (yyyy-MM-dd).
 func formatDate(t *time.Time) string {
 	if t == nil {
 		return ""
 	}
 
-	return t.Format("02/01/2006")
+	return t.Format("2006-01-02")
 }
 
-// parseDate parses a date in dd/MM/yyyy format. Returns nil for blank input.
+// parseDate parses a date in ISO 8601 (yyyy-MM-dd format). Returns nil for blank input.
 func parseDate(s string) *time.Time {
 	if strings.TrimSpace(s) == "" {
 		return nil
 	}
 
-	t, err := time.Parse("02/01/2006", s)
+	t, err := time.Parse("2006-01-02", s)
 	if err != nil {
 		return nil
 	}
