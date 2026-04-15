@@ -28,6 +28,7 @@ type AppConfig struct {
 	Cleanup        bool
 	FullExportFile string
 	DiffFile       string
+	Verbose        bool
 }
 
 // Validate returns an error if any required field is missing or invalid.
@@ -66,7 +67,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	var insecureStr string
 	var pageSize int
 	var exportFile, inputFile, fullExportFile, diffFile string
-	var cleanup bool
+	var cleanup, verbose bool
 
 	fs.StringVarP(&configFile, "config", "c", "", "Configuration file")
 	fs.StringVarP(&endpoint, "endpoint", "e", "", "API endpoint")
@@ -79,6 +80,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&exportFile, "export", "x", "", "Export CSV file path")
 	fs.StringVarP(&inputFile, "inputfile", "i", "", "Input CSV file path")
 	fs.BoolVarP(&cleanup, "cleanup", "k", false, "Cleanup")
+	fs.BoolVarP(&verbose, "verbose", "V", false, "Verbose output (debug)")
 	fs.StringVarP(&fullExportFile, "fullexport", "X", "", "Full XLSX export file path")
 	fs.StringVarP(&diffFile, "diff", "D", "", "File to write ContentEquals diff output for debugging")
 
@@ -155,6 +157,9 @@ func parseConfig(args []string) (AppConfig, error) {
 	}
 	if fs.Changed("diff") {
 		cfg.DiffFile = diffFile
+	}
+	if fs.Changed("verbose") {
+		cfg.Verbose = verbose
 	}
 
 	// Require exactly one mode flag

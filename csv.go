@@ -48,7 +48,7 @@ func ParseCSV(path string) ([]AccessRecord, error) {
 		records = append(records, mapRowToAccessRecord(row, col))
 	}
 
-	log.Printf("Parsed access records count=%d", len(records))
+	log.Printf("Total CSV access records: %d", len(records))
 	return records, nil
 }
 

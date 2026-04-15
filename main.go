@@ -66,8 +66,20 @@ func main() {
 			diffWriter = f
 		}
 		result := CompareRecords(csvRecords, cache.records, diffWriter)
-		for _, r := range result {
-			log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
+
+		log.Printf(
+			"Total records: %d, Existing %d, Update %d, Delete %d, New %d",
+			len(csvRecords),
+			len(result.Existing),
+			len(result.Update),
+			len(result.New),
+			len(result.Delete),
+		)
+
+		if cfg.Verbose {
+			for _, r := range result.All {
+				log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
+			}
 		}
 		break
 

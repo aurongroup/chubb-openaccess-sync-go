@@ -99,36 +99,49 @@ func dateEqual(a, b *time.Time) bool {
 	return a.Equal(*b)
 }
 
+// CompareResult holds the output of CompareRecords grouped by sync status.
+// All contains every record across all buckets in insertion order (New, Existing, Update, Delete).
+type CompareResult struct {
+	New      []*AccessRecord
+	Existing []*AccessRecord
+	Update   []*AccessRecord
+	Delete   []*AccessRecord
+	All      []*AccessRecord
+}
+
 // CompareRecords classifies each record in first against second:
 // NEW if absent from second, EXISTING if content matches, UPDATE if different.
 // If a record in second is not in first it is marked DELETE.
-func CompareRecords(first, second []*AccessRecord, w io.Writer) []*AccessRecord {
+func CompareRecords(first, second []*AccessRecord, w io.Writer) CompareResult {
 	secondByID := make(map[string]*AccessRecord, len(second))
 	for _, r := range second {
 		secondByID[r.BadgeID] = r
 	}
 
 	firstIDs := make(map[string]struct{}, len(first))
-	var result []*AccessRecord
+	var result CompareResult
 
 	for _, r := range first {
 		firstIDs[r.BadgeID] = struct{}{}
 
 		if s, ok := secondByID[r.BadgeID]; !ok {
 			r.SyncStatus = SyncNew
+			result.New = append(result.New, r)
 		} else if ContentEquals(r, s, w) {
 			r.SyncStatus = SyncExisting
+			result.Existing = append(result.Existing, r)
 		} else {
 			r.SyncStatus = SyncUpdate
+			result.Update = append(result.Update, r)
 		}
-
-		result = append(result, r)
+		result.All = append(result.All, r)
 	}
 
 	for _, r := range second {
 		if _, ok := firstIDs[r.BadgeID]; !ok {
 			r.SyncStatus = SyncDelete
-			result = append(result, r)
+			result.Delete = append(result.Delete, r)
+			result.All = append(result.All, r)
 		}
 	}
 
