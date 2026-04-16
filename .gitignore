@@ -2,6 +2,7 @@ openaccess-sync
 openaccess-sync.exe
 syncconfig.properties
 diff.txt
+.~lock*
 *.csv
 *.xlsx
 .idea/
