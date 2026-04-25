@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // formatDate formats a date as ISO 8601 (yyyy-MM-dd).
@@ -93,4 +94,13 @@ func dateStr(t *time.Time) any {
 	}
 
 	return t.Format("2006-01-02")
+}
+
+func removeWhitespace(str string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, str)
 }

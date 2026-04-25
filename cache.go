@@ -28,19 +28,21 @@ type DataCache struct {
 	badgeTypeList   []*LnlBadgeType
 	assignments     []*LnlAccessLevelAssignment
 
-	records []*AccessRecord
+	records                []*AccessRecord
+	recordsByCardholderKey map[string][]*AccessRecord
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.
 func NewDataCache(client *Client) *DataCache {
 	return &DataCache{
-		client:       client,
-		accessLevels: make(map[int]*LnlAccessLevel),
-		badges:       make(map[int]*LnlBadge),
-		badgeByKey:   make(map[int]*LnlBadge),
-		statuses:     make(map[int]*LnlBadgeStatus),
-		badgeTypes:   make(map[int]*LnlBadgeType),
-		cardholders:  make(map[int]*LnlCardholder),
+		client:                 client,
+		accessLevels:           make(map[int]*LnlAccessLevel),
+		badges:                 make(map[int]*LnlBadge),
+		badgeByKey:             make(map[int]*LnlBadge),
+		statuses:               make(map[int]*LnlBadgeStatus),
+		badgeTypes:             make(map[int]*LnlBadgeType),
+		cardholders:            make(map[int]*LnlCardholder),
+		recordsByCardholderKey: make(map[string][]*AccessRecord),
 	}
 }
 
@@ -66,6 +68,10 @@ func (c *DataCache) GetBadgeType(id int) *LnlBadgeType {
 
 func (c *DataCache) GetCardholder(id int) *LnlCardholder {
 	return c.cardholders[id]
+}
+
+func (c *DataCache) GetRecordsByCardholderKey(key string) []*AccessRecord {
+	return c.recordsByCardholderKey[key]
 }
 
 // Fill fetches all data from the API in the required order.
@@ -297,6 +303,10 @@ func (c *DataCache) buildAccessRecordList() []*AccessRecord {
 		}
 
 		records = append(records, r)
+
+		if r.CardholderKey != "" {
+			c.recordsByCardholderKey[r.CardholderKey] = append(c.recordsByCardholderKey[r.CardholderKey], r)
+		}
 	}
 
 	return records

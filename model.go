@@ -8,21 +8,22 @@ import (
 
 // AccessRecord represents a single row in the pipe-delimited access control CSV.
 type AccessRecord struct {
-	SSNO       string
-	First      string
-	Last       string
-	AccLvl1    string
-	AccLvl2    string
-	AccLvl3    string
-	AccLvl4    string
-	AccLvl5    string
-	AccLvl6    string
-	BadgeID    string
-	Activate   *time.Time
-	Deactivate *time.Time
-	Status     string
-	BadgeType  string
-	SyncStatus SyncStatus
+	SSNO          string
+	First         string
+	Last          string
+	AccLvl1       string
+	AccLvl2       string
+	AccLvl3       string
+	AccLvl4       string
+	AccLvl5       string
+	AccLvl6       string
+	BadgeID       string
+	Activate      *time.Time
+	Deactivate    *time.Time
+	Status        string
+	BadgeType     string
+	SyncStatus    SyncStatus
+	CardholderKey string
 }
 
 // NewAccessRecord constructs and validates an AccessRecord.
@@ -51,20 +52,21 @@ func NewAccessRecord(
 	}
 
 	return &AccessRecord{
-		SSNO:       ssno,
-		First:      first,
-		Last:       last,
-		AccLvl1:    accLvl1,
-		AccLvl2:    accLvl2,
-		AccLvl3:    accLvl3,
-		AccLvl4:    accLvl4,
-		AccLvl5:    accLvl5,
-		AccLvl6:    accLvl6,
-		BadgeID:    badgeID,
-		Activate:   activate,
-		Deactivate: deactivate,
-		Status:     status,
-		BadgeType:  badgeType,
+		SSNO:          ssno,
+		First:         first,
+		Last:          last,
+		AccLvl1:       accLvl1,
+		AccLvl2:       accLvl2,
+		AccLvl3:       accLvl3,
+		AccLvl4:       accLvl4,
+		AccLvl5:       accLvl5,
+		AccLvl6:       accLvl6,
+		BadgeID:       badgeID,
+		Activate:      activate,
+		Deactivate:    deactivate,
+		Status:        status,
+		BadgeType:     badgeType,
+		CardholderKey: removeWhitespace(fmt.Sprintf("%s%s%s", ssno, first, last)),
 	}, nil
 }
 
