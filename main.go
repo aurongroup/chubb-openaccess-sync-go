@@ -45,7 +45,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
-		break
 
 	case ModeSync:
 		csvValues, err := ParseCSV(cfg.File)
@@ -83,17 +82,14 @@ func main() {
 				log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
 			}
 		}
-		break
 
 	case ModeCleanup:
 		log.Println("cleanup not yet implemented")
-		break
 
 	case ModeFullExport:
 		err = ExportXLSX(cache, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
-		break
 	}
 }

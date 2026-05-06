@@ -79,10 +79,9 @@ func parseConfig(args []string) (AppConfig, error) {
 
 	var configFile string
 	var endpoint, application, user, password, directory string
-	var insecureStr string
 	var pageSize int
 	var file, diffFile string
-	var export, sync, fullExport, cleanup, verbose bool
+	var insecure, export, sync, fullExport, cleanup, verbose bool
 
 	fs.StringVarP(&configFile, "config", "c", "", "Configuration file")
 	fs.StringVarP(&endpoint, "endpoint", "e", "", "API endpoint")
@@ -90,7 +89,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&user, "user", "u", "", "Username")
 	fs.StringVarP(&password, "password", "p", "", "Password")
 	fs.StringVarP(&directory, "directory", "d", "", "Directory ID")
-	fs.StringVarP(&insecureStr, "insecure", "i", "false", "Disable SSL certificate validation (true/false)")
+	fs.BoolVarP(&insecure, "insecure", "i", false, "Disable SSL certificate validation (true/false)")
 	fs.IntVarP(&pageSize, "pagesize", "P", DefaultPageSize, "Page size (1-100)")
 	fs.StringVarP(&file, "file", "f", "", "File path for the active mode")
 	fs.BoolVarP(&export, string(ModeExport), "x", false, "Export records to CSV (use with --file)")
@@ -156,7 +155,7 @@ func parseConfig(args []string) (AppConfig, error) {
 	}
 
 	if fs.Changed("insecure") {
-		cfg.Insecure = strings.EqualFold(insecureStr, "true")
+		cfg.Insecure = insecure
 	}
 
 	if fs.Changed("pagesize") {

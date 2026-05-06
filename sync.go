@@ -10,10 +10,10 @@ import (
 type SyncStatus int
 
 const (
-	SyncNew      SyncStatus = iota
-	SyncExisting SyncStatus = iota
-	SyncUpdate   SyncStatus = iota
-	SyncDelete   SyncStatus = iota
+	SyncNew SyncStatus = iota
+	SyncExisting
+	SyncUpdate
+	SyncDelete
 )
 
 func (s SyncStatus) String() string {
