@@ -16,19 +16,20 @@ const (
 
 // AppConfig holds all validated configuration for the application.
 type AppConfig struct {
-	Endpoint       string
-	Application    string
-	User           string
-	Password       string
-	Directory      string
-	Insecure       bool
-	PageSize       int
-	ExportFile     string
-	InputFile      string
-	Cleanup        bool
-	FullExportFile string
-	DiffFile       string
-	Verbose        bool
+	Endpoint    string
+	Application string
+	User        string
+	Password    string
+	Directory   string
+	Insecure    bool
+	PageSize    int
+	File        string
+	Export      bool
+	Sync        bool
+	FullExport  bool
+	Cleanup     bool
+	DiffFile    string
+	Verbose     bool
 }
 
 // Validate returns an error if any required field is missing or invalid.
@@ -66,8 +67,8 @@ func parseConfig(args []string) (AppConfig, error) {
 	var endpoint, application, user, password, directory string
 	var insecureStr string
 	var pageSize int
-	var exportFile, inputFile, fullExportFile, diffFile string
-	var cleanup, verbose bool
+	var file, diffFile string
+	var export, sync, fullExport, cleanup, verbose bool
 
 	fs.StringVarP(&configFile, "config", "c", "", "Configuration file")
 	fs.StringVarP(&endpoint, "endpoint", "e", "", "API endpoint")
@@ -75,13 +76,14 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&user, "user", "u", "", "Username")
 	fs.StringVarP(&password, "password", "p", "", "Password")
 	fs.StringVarP(&directory, "directory", "d", "", "Directory ID")
-	fs.StringVarP(&insecureStr, "insecure", "I", "false", "Disable SSL certificate validation (true/false)")
-	fs.IntVarP(&pageSize, "pagesize", "s", DefaultPageSize, "Page size (1-100)")
-	fs.StringVarP(&exportFile, "export", "x", "", "Export CSV file path")
-	fs.StringVarP(&inputFile, "inputfile", "i", "", "Input CSV file path")
+	fs.StringVarP(&insecureStr, "insecure", "i", "false", "Disable SSL certificate validation (true/false)")
+	fs.IntVarP(&pageSize, "pagesize", "P", DefaultPageSize, "Page size (1-100)")
+	fs.StringVarP(&file, "file", "f", "", "File path for the active mode")
+	fs.BoolVarP(&export, "export", "x", false, "Export records to CSV (use with --file)")
+	fs.BoolVarP(&sync, "sync", "s", false, "Sync/compare CSV against API (use with --file)")
+	fs.BoolVarP(&fullExport, "fullexport", "X", false, "Full XLSX export (use with --file)")
 	fs.BoolVarP(&cleanup, "cleanup", "k", false, "Cleanup")
-	fs.BoolVarP(&verbose, "verbose", "V", false, "Verbose output (debug)")
-	fs.StringVarP(&fullExportFile, "fullexport", "X", "", "Full XLSX export file path")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "Verbose output (debug)")
 	fs.StringVarP(&diffFile, "diff", "D", "", "File to write ContentEquals diff output for debugging")
 
 	fs.Usage = func() {
@@ -143,17 +145,20 @@ func parseConfig(args []string) (AppConfig, error) {
 			cfg.PageSize = DefaultPageSize
 		}
 	}
-	if fs.Changed("inputfile") {
-		cfg.InputFile = inputFile
+	if fs.Changed("file") {
+		cfg.File = file
 	}
 	if fs.Changed("export") {
-		cfg.ExportFile = exportFile
+		cfg.Export = export
+	}
+	if fs.Changed("sync") {
+		cfg.Sync = sync
+	}
+	if fs.Changed("fullexport") {
+		cfg.FullExport = fullExport
 	}
 	if fs.Changed("cleanup") {
 		cfg.Cleanup = cleanup
-	}
-	if fs.Changed("fullexport") {
-		cfg.FullExportFile = fullExportFile
 	}
 	if fs.Changed("diff") {
 		cfg.DiffFile = diffFile
@@ -164,13 +169,16 @@ func parseConfig(args []string) (AppConfig, error) {
 
 	// Require exactly one mode flag
 	modeCount := 0
-	for _, flag := range []string{"export", "inputfile", "fullexport", "cleanup"} {
+	for _, flag := range []string{"export", "sync", "fullexport", "cleanup"} {
 		if fs.Changed(flag) {
 			modeCount++
 		}
 	}
 	if modeCount == 0 {
-		return AppConfig{}, errors.New("one of --inputfile (-i), --export (-x), --fullexport (-X), or --cleanup (-k) is required")
+		return AppConfig{}, errors.New("one of --sync (-s), --export (-x), --fullexport (-X), or --cleanup (-k) is required")
+	}
+	if (cfg.Export || cfg.Sync || cfg.FullExport) && cfg.File == "" {
+		return AppConfig{}, errors.New("--file (-f) is required with --export, --sync, and --fullexport")
 	}
 
 	return cfg, nil

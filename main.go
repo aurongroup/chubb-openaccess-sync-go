@@ -38,15 +38,15 @@ func main() {
 	}
 
 	switch {
-	case cfg.ExportFile != "":
-		err = PrintCSVReport(cache.records, cfg.ExportFile)
+	case cfg.Export:
+		err = PrintCSVReport(cache.records, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 		break
 
-	case cfg.InputFile != "":
-		csvValues, err := ParseCSV(cfg.InputFile)
+	case cfg.Sync:
+		csvValues, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
@@ -87,8 +87,8 @@ func main() {
 		log.Println("cleanup not yet implemented")
 		break
 
-	case cfg.FullExportFile != "":
-		err = ExportXLSX(cache, cfg.FullExportFile)
+	case cfg.FullExport:
+		err = ExportXLSX(cache, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
