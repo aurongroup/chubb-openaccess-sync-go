@@ -37,9 +37,11 @@ func main() {
 		log.Fatalf("Failed to load API data: %v", err)
 	}
 
+	arc := BuildAccessRecordCache(cache)
+
 	switch cfg.Mode {
 	case ModeExport:
-		err = PrintCSVReport(cache.records, cfg.File)
+		err = PrintCSVReport(arc.records, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
@@ -65,7 +67,7 @@ func main() {
 			defer f.Close()
 			diffWriter = f
 		}
-		result := CompareRecords(csvRecords, cache.records, diffWriter)
+		result := CompareRecords(csvRecords, arc.records, diffWriter)
 
 		log.Printf(
 			"Total records: %d, Existing %d, Update %d, Delete %d, New %d",

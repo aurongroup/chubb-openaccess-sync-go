@@ -77,7 +77,7 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 		return err
 	}
 
-	levelsByBadgeID := cache.accessLevelsByBadge()
+	levelsByBadgeID := cache.GetAccessLevelsByBadge()
 
 	for i, badge := range cache.badgeList {
 		row := i + 2

@@ -8,6 +8,43 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+// AccessRecordCache holds the computed access records derived from a DataCache.
+type AccessRecordCache struct {
+	records                []*AccessRecord
+	recordsByCardholderKey map[string][]*AccessRecord
+}
+
+func BuildAccessRecordCache(c *DataCache) *AccessRecordCache {
+	arc := AccessRecordCache{
+		recordsByCardholderKey: make(map[string][]*AccessRecord),
+	}
+
+	levelsByBadgeID := c.GetAccessLevelsByBadge()
+	for _, badge := range c.GetBadges() {
+		r, err := badge.ToAccessRecord(levelsByBadgeID[badge.ID])
+		if err != nil {
+			log.Printf("skipping access record for badge %d: %v", badge.ID, err)
+			continue
+		}
+
+		arc.records = append(arc.records, r)
+
+		if r.CardholderKey != "" {
+			arc.recordsByCardholderKey[r.CardholderKey] = append(arc.recordsByCardholderKey[r.CardholderKey], r)
+		}
+	}
+
+	return &arc
+}
+
+func (c *AccessRecordCache) Records() []*AccessRecord {
+	return c.records
+}
+
+func (c *AccessRecordCache) GetRecordsByCardholderKey(key string) []*AccessRecord {
+	return c.recordsByCardholderKey[key]
+}
+
 // DataCache holds all data fetched from the OpenAccess API.
 type DataCache struct {
 	client *Client
@@ -27,22 +64,18 @@ type DataCache struct {
 	badgeStatusList []*LnlBadgeStatus
 	badgeTypeList   []*LnlBadgeType
 	assignments     []*LnlAccessLevelAssignment
-
-	records                []*AccessRecord
-	recordsByCardholderKey map[string][]*AccessRecord
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.
 func NewDataCache(client *Client) *DataCache {
 	return &DataCache{
-		client:                 client,
-		accessLevels:           make(map[int]*LnlAccessLevel),
-		badges:                 make(map[int]*LnlBadge),
-		badgeByKey:             make(map[int]*LnlBadge),
-		statuses:               make(map[int]*LnlBadgeStatus),
-		badgeTypes:             make(map[int]*LnlBadgeType),
-		cardholders:            make(map[int]*LnlCardholder),
-		recordsByCardholderKey: make(map[string][]*AccessRecord),
+		client:       client,
+		accessLevels: make(map[int]*LnlAccessLevel),
+		badges:       make(map[int]*LnlBadge),
+		badgeByKey:   make(map[int]*LnlBadge),
+		statuses:     make(map[int]*LnlBadgeStatus),
+		badgeTypes:   make(map[int]*LnlBadgeType),
+		cardholders:  make(map[int]*LnlCardholder),
 	}
 }
 
@@ -52,6 +85,10 @@ func (c *DataCache) GetAccessLevel(id int) *LnlAccessLevel {
 
 func (c *DataCache) GetBadge(id int) *LnlBadge {
 	return c.badges[id]
+}
+
+func (c *DataCache) GetBadges() []*LnlBadge {
+	return c.badgeList
 }
 
 func (c *DataCache) GetBadgeByKey(key int) *LnlBadge {
@@ -68,10 +105,6 @@ func (c *DataCache) GetBadgeType(id int) *LnlBadgeType {
 
 func (c *DataCache) GetCardholder(id int) *LnlCardholder {
 	return c.cardholders[id]
-}
-
-func (c *DataCache) GetRecordsByCardholderKey(key string) []*AccessRecord {
-	return c.recordsByCardholderKey[key]
 }
 
 // Fill fetches all data from the API in the required order.
@@ -101,8 +134,6 @@ func (c *DataCache) Fill() error {
 	if err := c.fillAssignments(); err != nil {
 		return err
 	}
-
-	c.records = c.buildAccessRecordList()
 
 	return nil
 }
@@ -277,9 +308,9 @@ func (c *DataCache) fillAssignments() error {
 	return nil
 }
 
-// accessLevelsByBadge returns a map from badge ID to its assigned access levels,
+// GetAccessLevelsByBadge returns a map from badge ID to its assigned access levels,
 // in assignment order.
-func (c *DataCache) accessLevelsByBadge() map[int][]*LnlAccessLevel {
+func (c *DataCache) GetAccessLevelsByBadge() map[int][]*LnlAccessLevel {
 	m := make(map[int][]*LnlAccessLevel)
 
 	for _, a := range c.assignments {
@@ -287,27 +318,4 @@ func (c *DataCache) accessLevelsByBadge() map[int][]*LnlAccessLevel {
 	}
 
 	return m
-}
-
-// buildAccessRecordList groups assignments by badge ID and creates one
-// AccessRecord per badge, matching Java's DataCache.buildAccessRecordList().
-func (c *DataCache) buildAccessRecordList() []*AccessRecord {
-	levelsByBadgeID := c.accessLevelsByBadge()
-	records := make([]*AccessRecord, 0, len(c.badgeList))
-
-	for _, badge := range c.badgeList {
-		r, err := badge.ToAccessRecord(levelsByBadgeID[badge.ID])
-		if err != nil {
-			log.Printf("skipping access record for badge %d: %v", badge.ID, err)
-			continue
-		}
-
-		records = append(records, r)
-
-		if r.CardholderKey != "" {
-			c.recordsByCardholderKey[r.CardholderKey] = append(c.recordsByCardholderKey[r.CardholderKey], r)
-		}
-	}
-
-	return records
 }
