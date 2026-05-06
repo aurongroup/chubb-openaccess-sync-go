@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 )
 
 // AccessRecord represents a single row in the pipe-delimited access control CSV.
@@ -24,6 +26,16 @@ type AccessRecord struct {
 	BadgeType     string
 	SyncStatus    SyncStatus
 	CardholderKey string
+}
+
+func generateCardholderKey(ssno, first, last string) string {
+	str := fmt.Sprintf("%s%s%s", ssno, first, last)
+	return strings.ToUpper(strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, str))
 }
 
 // NewAccessRecord constructs and validates an AccessRecord.
@@ -66,7 +78,7 @@ func NewAccessRecord(
 		Deactivate:    deactivate,
 		Status:        status,
 		BadgeType:     badgeType,
-		CardholderKey: removeWhitespace(fmt.Sprintf("%s%s%s", ssno, first, last)),
+		CardholderKey: generateCardholderKey(ssno, first, last),
 	}, nil
 }
 
