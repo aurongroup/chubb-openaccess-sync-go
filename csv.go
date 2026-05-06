@@ -45,14 +45,19 @@ func ParseCSV(path string) ([]*AccessRecord, error) {
 			return nil, err
 		}
 
-		records = append(records, mapRowToAccessRecord(row, col))
+		r, err := mapRowToAccessRecord(row, col)
+		if err != nil {
+			return nil, err
+		}
+
+		records = append(records, r)
 	}
 
 	log.Printf("Total CSV access records: %d", len(records))
 	return records, nil
 }
 
-func mapRowToAccessRecord(row []string, col map[string]int) *AccessRecord {
+func mapRowToAccessRecord(row []string, col map[string]int) (*AccessRecord, error) {
 	get := func(name string) string {
 		i, ok := col[name]
 
@@ -62,22 +67,23 @@ func mapRowToAccessRecord(row []string, col map[string]int) *AccessRecord {
 
 		return row[i]
 	}
-	return &AccessRecord{
-		SSNO:       get("ssno"),
-		First:      get("first"),
-		Last:       get("last"),
-		AccLvl1:    get("acc_lvl1"),
-		AccLvl2:    get("acc_lvl2"),
-		AccLvl3:    get("acc_lvl3"),
-		AccLvl4:    get("acc_lvl4"),
-		AccLvl5:    get("acc_lvl5"),
-		AccLvl6:    get("acc_lvl6"),
-		BadgeID:    get("badgeid"),
-		Activate:   parseDate(get("activate")),
-		Deactivate: parseDate(get("deactivate")),
-		Status:     get("status"),
-		BadgeType:  get("badge type"),
-	}
+
+	return NewAccessRecord(
+		get("ssno"),
+		get("first"),
+		get("last"),
+		get("acc_lvl1"),
+		get("acc_lvl2"),
+		get("acc_lvl3"),
+		get("acc_lvl4"),
+		get("acc_lvl5"),
+		get("acc_lvl6"),
+		get("badgeid"),
+		parseDate(get("activate")),
+		parseDate(get("deactivate")),
+		get("status"),
+		get("badge type"),
+	)
 }
 
 // PrintCSVReport writes the access records to a pipe-delimited CSV file.
