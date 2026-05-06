@@ -21,6 +21,20 @@ var (
 	defaultRequestTimeout = 30 * time.Second
 )
 
+type InstanceItem struct {
+	PropertyMap map[string]any `json:"property_value_map"`
+}
+
+type InstanceResponse struct {
+	PageNumber int            `json:"page_number"`
+	PageSize   int            `json:"page_size"`
+	TotalPages int            `json:"total_pages"`
+	TotalItems int            `json:"total_items"`
+	Count      int            `json:"count"`
+	ItemList   []InstanceItem `json:"item_list"`
+	TypeName   string         `json:"type_name"`
+}
+
 // ClientError represents an error from the OpenAccess API.
 type ClientError struct {
 	Message    string
@@ -227,39 +241,17 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 		return nil, 0, &ClientError{Message: "unexpected status", Method: "GET", URI: uri, StatusCode: resp.StatusCode}
 	}
 
-	var result map[string]any
+	var result InstanceResponse
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return nil, 0, &ClientError{Message: "parse response: " + err.Error(), Method: "GET", URI: uri}
 	}
 
-	if _, ok := result["page_number"]; !ok {
-		return nil, 0, &ClientError{Message: "missing page_number in response", Method: "GET", URI: uri}
-	}
-
-	tp, ok := result["total_pages"]
-	if !ok {
-		return nil, 0, &ClientError{Message: "missing total_pages in response", Method: "GET", URI: uri}
-	}
-	totalPages := int(tp.(float64)) // FIXME
-
 	var items []map[string]any
-	if itemList, ok := result["item_list"].([]any); ok {
-		for _, item := range itemList {
-			m, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-
-			props, ok := m["property_value_map"].(map[string]any)
-			if !ok {
-				continue
-			}
-
-			items = append(items, props)
-		}
+	for _, item := range result.ItemList {
+		items = append(items, item.PropertyMap)
 	}
 
-	return items, totalPages, nil
+	return items, result.TotalPages, nil
 }
 
 // CreateInstance is a stub — not yet implemented.

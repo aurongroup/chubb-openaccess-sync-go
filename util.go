@@ -72,17 +72,7 @@ func propStr(m map[string]any, key string) string {
 
 // propDate extracts a date (ISO 8601 YYYY-MM-DD) from a property_value_map.
 func propDate(m map[string]any, key string) *time.Time {
-	s := propStr(m, key)
-	if s == "" {
-		return nil
-	}
-
-	t, err := time.Parse("2006-01-02", s)
-	if err != nil {
-		return nil
-	}
-
-	return &t
+	return parseDate(propStr(m, key))
 }
 
 // dateStr returns the ISO 8601 string for a date, or nil if the date is nil.
