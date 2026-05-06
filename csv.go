@@ -9,7 +9,7 @@ import (
 )
 
 // ParseCSV reads a pipe-delimited access record CSV from path.
-func ParseCSV(path string) ([]AccessRecord, error) {
+func ParseCSV(path string) ([]*AccessRecord, error) {
 	log.Printf("Parsing access records from file: %s", path)
 
 	f, err := os.Open(path)
@@ -33,7 +33,7 @@ func ParseCSV(path string) ([]AccessRecord, error) {
 		col[strings.TrimSpace(h)] = i
 	}
 
-	var records []AccessRecord
+	var records []*AccessRecord
 	for {
 		row, err := cr.Read()
 
@@ -52,7 +52,7 @@ func ParseCSV(path string) ([]AccessRecord, error) {
 	return records, nil
 }
 
-func mapRowToAccessRecord(row []string, col map[string]int) AccessRecord {
+func mapRowToAccessRecord(row []string, col map[string]int) *AccessRecord {
 	get := func(name string) string {
 		i, ok := col[name]
 
@@ -62,7 +62,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) AccessRecord {
 
 		return row[i]
 	}
-	return AccessRecord{
+	return &AccessRecord{
 		SSNO:       get("ssno"),
 		First:      get("first"),
 		Last:       get("last"),

@@ -37,24 +37,21 @@ func main() {
 		log.Fatalf("Failed to load API data: %v", err)
 	}
 
-	arc := BuildAccessRecordCache(cache)
-
 	switch cfg.Mode {
 	case ModeExport:
+		arc := BuildAccessRecordCache(cache)
+
 		err = PrintCSVReport(arc.records, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 
 	case ModeSync:
-		csvValues, err := ParseCSV(cfg.File)
+		arc := BuildAccessRecordCache(cache)
+
+		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
-		}
-
-		csvRecords := make([]*AccessRecord, len(csvValues))
-		for i := range csvValues {
-			csvRecords[i] = &csvValues[i]
 		}
 
 		var diffWriter io.Writer

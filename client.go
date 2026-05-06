@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -263,12 +264,12 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 
 // CreateInstance is a stub — not yet implemented.
 func (c *Client) CreateInstance(_ string, _ map[string]any) (int, error) {
-	return 0, nil
+	return 0, errors.New("not implemented")
 }
 
 // UpdateInstance is a stub — not yet implemented.
 func (c *Client) UpdateInstance(_ string, _ map[string]any) error {
-	return nil
+	return errors.New("not implemented")
 }
 
 // DeleteInstance deletes an instance by sending its representation.
