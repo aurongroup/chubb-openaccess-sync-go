@@ -477,7 +477,7 @@ func TestAccessRecord_ToRow_shouldReturnAllFieldsInOrder(t *testing.T) {
 	if len(row) != 14 {
 		t.Fatalf("expected 14 fields, got %d", len(row))
 	}
-	expected := []string{"8274", "BOB", "BROWN", "L1", "L2", "L3", "L4", "L5", "L6", "9017", "12/09/2018", "12/09/2020", "active", "Employee"}
+	expected := []string{"8274", "BOB", "BROWN", "L1", "L2", "L3", "L4", "L5", "L6", "9017", "2018-09-12", "2020-09-12", "active", "Employee"}
 	for i, want := range expected {
 		if row[i] != want {
 			t.Errorf("field[%d]: expected %q, got %q", i, want, row[i])
@@ -492,8 +492,8 @@ func TestAccessRecord_ToRow_shouldFormatDatesCorrectly(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := r.ToRow()
-	if row[10] != "05/03/2024" {
-		t.Errorf("activate: expected %q, got %q", "05/03/2024", row[10])
+	if row[10] != "2024-03-05" {
+		t.Errorf("activate: expected %q, got %q", "2024-03-05", row[10])
 	}
 	if row[11] != "" {
 		t.Errorf("deactivate: expected empty string, got %q", row[11])

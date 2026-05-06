@@ -10,8 +10,8 @@ import (
 func TestFormatDate_shouldReturnFormattedDate(t *testing.T) {
 	d := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
 	got := formatDate(&d)
-	if got != "12/09/2018" {
-		t.Errorf("expected %q, got %q", "12/09/2018", got)
+	if got != "2018-09-12" {
+		t.Errorf("expected %q, got %q", "2018-09-12", got)
 	}
 }
 
@@ -25,7 +25,7 @@ func TestFormatDate_shouldReturnEmptyStringForNil(t *testing.T) {
 // ---- parseDate ----
 
 func TestParseDate_shouldParseValidDate(t *testing.T) {
-	d := parseDate("12/09/2018")
+	d := parseDate("2018-09-12")
 	if d == nil {
 		t.Fatal("expected non-nil date")
 	}
@@ -44,9 +44,9 @@ func TestParseDate_shouldReturnNilForBlankInput(t *testing.T) {
 }
 
 func TestParseDate_shouldReturnNilForInvalidFormat(t *testing.T) {
-	got := parseDate("2018-09-12")
+	got := parseDate("not-a-date")
 	if got != nil {
-		t.Errorf("expected nil for ISO format input, got %v", got)
+		t.Errorf("expected nil for invalid input, got %v", got)
 	}
 }
 
