@@ -12,6 +12,9 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	ansi "github.com/k0kubun/go-ansi"
+	"github.com/schollz/progressbar/v3"
 )
 
 const apiVersion = "1.0"
@@ -205,6 +208,22 @@ func (c *Client) Close() error {
 // GetInstances fetches all pages of the given type from the API.
 // Returns the property_value_map contents for each item.
 func (c *Client) GetInstances(typeName, filter string) ([]map[string]any, error) {
+	return c.getInstances(typeName, filter, false)
+}
+
+// GetInstancesWithProgress fetches all pages of the given type, displaying a
+// progress bar as each page arrives.
+// Returns the property_value_map contents for each item.
+func (c *Client) GetInstancesWithProgress(typeName, filter string) ([]map[string]any, error) {
+	return c.getInstances(typeName, filter, true)
+}
+
+// getInstances fetches all pages of the given type, and if required, displaying a
+// progress bar as each page arrives.
+func (c *Client) getInstances(typeName, filter string, progress bool) ([]map[string]any, error) {
+	log.Printf("Fetching %s pages from OpenAccess API...", typeName)
+
+	var bar *progressbar.ProgressBar
 	var all []map[string]any
 
 	for page := 1; ; page++ {
@@ -213,11 +232,40 @@ func (c *Client) GetInstances(typeName, filter string) ([]map[string]any, error)
 			return nil, err
 		}
 
+		if progress {
+			if bar == nil {
+				bar = progressbar.NewOptions(totalPages,
+					progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
+					progressbar.OptionEnableColorCodes(true),
+					progressbar.OptionSetDescription(typeName),
+					progressbar.OptionShowDescriptionAtLineEnd(),
+					progressbar.OptionShowCount(),
+					progressbar.OptionSetWidth(30),
+					progressbar.OptionSetTheme(progressbar.Theme{
+						Saucer:        "[green]=[reset]",
+						SaucerHead:    "[green]>[reset]",
+						SaucerPadding: " ",
+						BarStart:      "[",
+						BarEnd:        "]",
+					}),
+				)
+			}
+			_ = bar.Add(1)
+		}
+
 		all = append(all, items...)
+
 		if page >= totalPages {
 			break
 		}
 	}
+
+	if progress {
+		_ = bar.Finish()
+	}
+
+	fmt.Println()
+
 	return all, nil
 }
 
