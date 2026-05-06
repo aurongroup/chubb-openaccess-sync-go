@@ -37,15 +37,15 @@ func main() {
 		log.Fatalf("Failed to load API data: %v", err)
 	}
 
-	switch {
-	case cfg.Export:
+	switch cfg.Mode {
+	case ModeExport:
 		err = PrintCSVReport(cache.records, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 		break
 
-	case cfg.Sync:
+	case ModeSync:
 		csvValues, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
@@ -83,11 +83,11 @@ func main() {
 		}
 		break
 
-	case cfg.Cleanup:
+	case ModeCleanup:
 		log.Println("cleanup not yet implemented")
 		break
 
-	case cfg.FullExport:
+	case ModeFullExport:
 		err = ExportXLSX(cache, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)

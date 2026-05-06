@@ -14,6 +14,16 @@ const (
 	MaxPageSize     = 100
 )
 
+type Mode string
+
+const (
+	ModeUnset      Mode = ""
+	ModeExport     Mode = "export"
+	ModeSync       Mode = "sync"
+	ModeFullExport Mode = "fullexport"
+	ModeCleanup    Mode = "cleanup"
+)
+
 // AppConfig holds all validated configuration for the application.
 type AppConfig struct {
 	Endpoint    string
@@ -24,10 +34,7 @@ type AppConfig struct {
 	Insecure    bool
 	PageSize    int
 	File        string
-	Export      bool
-	Sync        bool
-	FullExport  bool
-	Cleanup     bool
+	Mode        Mode
 	DiffFile    string
 	Verbose     bool
 }
@@ -37,24 +44,31 @@ func (c AppConfig) Validate() error {
 	if strings.TrimSpace(c.Endpoint) == "" {
 		return errors.New("endpoint is required")
 	}
+
 	if !isValidURL(c.Endpoint) {
 		return errors.New("endpoint must be a valid URL")
 	}
+
 	if strings.TrimSpace(c.Application) == "" {
 		return errors.New("application is required")
 	}
+
 	if strings.TrimSpace(c.User) == "" {
 		return errors.New("user is required")
 	}
+
 	if strings.TrimSpace(c.Password) == "" {
 		return errors.New("password is required")
 	}
+
 	if strings.TrimSpace(c.Directory) == "" {
 		return errors.New("directory is required")
 	}
+
 	if c.PageSize <= 0 || c.PageSize > MaxPageSize {
 		return fmt.Errorf("invalid pageSize - must be greater than zero and less than or equal to %d", MaxPageSize)
 	}
+
 	return nil
 }
 
@@ -79,10 +93,10 @@ func parseConfig(args []string) (AppConfig, error) {
 	fs.StringVarP(&insecureStr, "insecure", "i", "false", "Disable SSL certificate validation (true/false)")
 	fs.IntVarP(&pageSize, "pagesize", "P", DefaultPageSize, "Page size (1-100)")
 	fs.StringVarP(&file, "file", "f", "", "File path for the active mode")
-	fs.BoolVarP(&export, "export", "x", false, "Export records to CSV (use with --file)")
-	fs.BoolVarP(&sync, "sync", "s", false, "Sync/compare CSV against API (use with --file)")
-	fs.BoolVarP(&fullExport, "fullexport", "X", false, "Full XLSX export (use with --file)")
-	fs.BoolVarP(&cleanup, "cleanup", "k", false, "Cleanup")
+	fs.BoolVarP(&export, string(ModeExport), "x", false, "Export records to CSV (use with --file)")
+	fs.BoolVarP(&sync, string(ModeSync), "s", false, "Sync/compare CSV against API (use with --file)")
+	fs.BoolVarP(&fullExport, string(ModeFullExport), "X", false, "Full XLSX export (use with --file)")
+	fs.BoolVarP(&cleanup, string(ModeCleanup), "k", false, "Cleanup")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "Verbose output (debug)")
 	fs.StringVarP(&diffFile, "diff", "D", "", "File to write ContentEquals diff output for debugging")
 
@@ -108,6 +122,7 @@ func parseConfig(args []string) (AppConfig, error) {
 		if err != nil {
 			return AppConfig{}, fmt.Errorf("error loading configuration file: %w", err)
 		}
+
 		cfg.Endpoint = props.GetString("endpoint", "")
 		cfg.Application = props.GetString("application", "")
 		cfg.User = props.GetString("user", "")
@@ -123,21 +138,27 @@ func parseConfig(args []string) (AppConfig, error) {
 	if fs.Changed("endpoint") {
 		cfg.Endpoint = endpoint
 	}
+
 	if fs.Changed("application") {
 		cfg.Application = application
 	}
+
 	if fs.Changed("user") {
 		cfg.User = user
 	}
+
 	if fs.Changed("password") {
 		cfg.Password = password
 	}
+
 	if fs.Changed("directory") {
 		cfg.Directory = directory
 	}
+
 	if fs.Changed("insecure") {
 		cfg.Insecure = strings.EqualFold(insecureStr, "true")
 	}
+
 	if fs.Changed("pagesize") {
 		if pageSize > 0 && pageSize <= MaxPageSize {
 			cfg.PageSize = pageSize
@@ -145,39 +166,56 @@ func parseConfig(args []string) (AppConfig, error) {
 			cfg.PageSize = DefaultPageSize
 		}
 	}
+
 	if fs.Changed("file") {
 		cfg.File = file
 	}
-	if fs.Changed("export") {
-		cfg.Export = export
+
+	setMode := func(m Mode) error {
+		if cfg.Mode != ModeUnset {
+			return fmt.Errorf("flags --%s and --%s are mutually exclusive", cfg.Mode, m)
+		}
+		cfg.Mode = m
+		return nil
 	}
-	if fs.Changed("sync") {
-		cfg.Sync = sync
+
+	if fs.Changed(string(ModeExport)) {
+		if err := setMode(ModeExport); err != nil {
+			return AppConfig{}, err
+		}
 	}
-	if fs.Changed("fullexport") {
-		cfg.FullExport = fullExport
+
+	if fs.Changed(string(ModeSync)) {
+		if err := setMode(ModeSync); err != nil {
+			return AppConfig{}, err
+		}
 	}
-	if fs.Changed("cleanup") {
-		cfg.Cleanup = cleanup
+
+	if fs.Changed(string(ModeFullExport)) {
+		if err := setMode(ModeFullExport); err != nil {
+			return AppConfig{}, err
+		}
 	}
+
+	if fs.Changed(string(ModeCleanup)) {
+		if err := setMode(ModeCleanup); err != nil {
+			return AppConfig{}, err
+		}
+	}
+
 	if fs.Changed("diff") {
 		cfg.DiffFile = diffFile
 	}
+
 	if fs.Changed("verbose") {
 		cfg.Verbose = verbose
 	}
 
-	// Require exactly one mode flag
-	modeCount := 0
-	for _, flag := range []string{"export", "sync", "fullexport", "cleanup"} {
-		if fs.Changed(flag) {
-			modeCount++
-		}
+	if cfg.Mode == ModeUnset {
+		return AppConfig{}, errors.New("one of --export (-x), --sync (-s), --fullexport (-X), or --cleanup (-k) is required")
 	}
-	if modeCount == 0 {
-		return AppConfig{}, errors.New("one of --sync (-s), --export (-x), --fullexport (-X), or --cleanup (-k) is required")
-	}
-	if (cfg.Export || cfg.Sync || cfg.FullExport) && cfg.File == "" {
+
+	if cfg.Mode != ModeCleanup && cfg.File == "" {
 		return AppConfig{}, errors.New("--file (-f) is required with --export, --sync, and --fullexport")
 	}
 
