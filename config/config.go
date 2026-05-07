@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"openaccess-sync/util"
+	"openaccess-sync/util/url"
 	"strings"
 
 	"github.com/magiconair/properties"
@@ -46,7 +46,7 @@ func (c AppConfig) Validate() error {
 		return errors.New("endpoint is required")
 	}
 
-	if !util.IsValidURL(c.Endpoint) {
+	if !url.IsValid(c.Endpoint) {
 		return errors.New("endpoint must be a valid URL")
 	}
 

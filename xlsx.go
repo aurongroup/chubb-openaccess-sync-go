@@ -2,6 +2,7 @@ package main
 
 import (
 	"openaccess-sync/models"
+	"openaccess-sync/util/date"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -86,8 +87,8 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 		vals := []any{
 			badge.ID,
 			badge.BadgeKey,
-			models.FormatDate(badge.Activate),
-			models.FormatDate(badge.Deactivate),
+			date.Format(badge.Activate),
+			date.Format(badge.Deactivate),
 			badgeStatusName(badge),
 			badgeTypeName(badge),
 			cardholderSSNO(badge),

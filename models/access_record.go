@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"openaccess-sync/util/date"
 	"strings"
 	"time"
 	"unicode"
@@ -94,8 +95,8 @@ func (r *AccessRecord) ToRow() []string {
 		r.AccLvl5,
 		r.AccLvl6,
 		r.BadgeID,
-		FormatDate(r.Activate),
-		FormatDate(r.Deactivate),
+		date.Format(r.Activate),
+		date.Format(r.Deactivate),
 		r.Status,
 		r.BadgeType,
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
+	"openaccess-sync/util/date"
 	"os"
 	"strings"
 
@@ -81,8 +82,8 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*models.AccessRecor
 		get("acc_lvl5"),
 		get("acc_lvl6"),
 		get("badgeid"),
-		models.ParseDate(get("activate")),
-		models.ParseDate(get("deactivate")),
+		date.Parse(get("activate")),
+		date.Parse(get("deactivate")),
 		get("status"),
 		get("badge type"),
 	)

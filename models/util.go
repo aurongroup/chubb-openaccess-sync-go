@@ -1,32 +1,9 @@
 package models
 
 import (
-	"strings"
+	"openaccess-sync/util/date"
 	"time"
 )
-
-// FormatDate formats a date as ISO 8601 (yyyy-MM-dd).
-func FormatDate(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-
-	return t.Format("2006-01-02")
-}
-
-// ParseDate parses a date in ISO 8601 (yyyy-MM-dd format). Returns nil for blank input.
-func ParseDate(s string) *time.Time {
-	if strings.TrimSpace(s) == "" {
-		return nil
-	}
-
-	t, err := time.Parse("2006-01-02", s)
-	if err != nil {
-		return nil
-	}
-
-	return &t
-}
 
 // propInt extracts an integer value from a property_value_map.
 // JSON numbers decode as float64; ToJSON returns native int — handle both.
@@ -62,7 +39,7 @@ func propStr(m map[string]any, key string) string {
 
 // propDate extracts a date (ISO 8601 YYYY-MM-DD) from a property_value_map.
 func propDate(m map[string]any, key string) *time.Time {
-	return ParseDate(propStr(m, key))
+	return date.Parse(propStr(m, key))
 }
 
 // dateStr returns the ISO 8601 string for a date, or nil if the date is nil.

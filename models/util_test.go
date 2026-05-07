@@ -5,51 +5,6 @@ import (
 	"time"
 )
 
-// ---- FormatDate ----
-
-func TestFormatDate_shouldReturnFormattedDate(t *testing.T) {
-	d := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
-	got := FormatDate(&d)
-	if got != "2018-09-12" {
-		t.Errorf("expected %q, got %q", "2018-09-12", got)
-	}
-}
-
-func TestFormatDate_shouldReturnEmptyStringForNil(t *testing.T) {
-	got := FormatDate(nil)
-	if got != "" {
-		t.Errorf("expected empty string, got %q", got)
-	}
-}
-
-// ---- ParseDate ----
-
-func TestParseDate_shouldParseValidDate(t *testing.T) {
-	d := ParseDate("2018-09-12")
-	if d == nil {
-		t.Fatal("expected non-nil date")
-	}
-	want := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
-	if !d.Equal(want) {
-		t.Errorf("expected %v, got %v", want, *d)
-	}
-}
-
-func TestParseDate_shouldReturnNilForBlankInput(t *testing.T) {
-	for _, s := range []string{"", "  "} {
-		if got := ParseDate(s); got != nil {
-			t.Errorf("ParseDate(%q): expected nil, got %v", s, got)
-		}
-	}
-}
-
-func TestParseDate_shouldReturnNilForInvalidFormat(t *testing.T) {
-	got := ParseDate("not-a-date")
-	if got != nil {
-		t.Errorf("expected nil for invalid input, got %v", got)
-	}
-}
-
 // ---- dateStr ----
 
 func TestDateStr_shouldReturnISOString(t *testing.T) {
