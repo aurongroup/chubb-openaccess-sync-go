@@ -1,4 +1,6 @@
-package models
+package lenel
+
+import "openaccess-sync/data"
 
 // LnlBadgeType represents a badge type from the OpenAccess API.
 type LnlBadgeType struct {
@@ -7,14 +9,14 @@ type LnlBadgeType struct {
 }
 
 func NewLnlBadgeType(props map[string]any) (*LnlBadgeType, error) {
-	id := propInt(props, "ID")
+	id := json.PropToInt(props, "ID")
 	if id == 0 {
-		return nil, ErrBadgeTypeMissingID
+		return nil, data.ErrBadgeTypeMissingID
 	}
 
-	name := propStr(props, "Name")
+	name := json.PropToStr(props, "Name")
 	if name == "" {
-		return nil, ErrBadgeTypeMissingName
+		return nil, data.ErrBadgeTypeMissingName
 	}
 
 	return &LnlBadgeType{ID: id, Name: name}, nil

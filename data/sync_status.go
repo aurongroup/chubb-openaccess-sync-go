@@ -1,4 +1,4 @@
-package models
+package data
 
 // SyncStatus represents the result of comparing a CSV record against the API.
 type SyncStatus int

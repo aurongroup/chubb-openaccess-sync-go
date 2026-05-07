@@ -1,14 +1,15 @@
 package main
 
 import (
-	"openaccess-sync/models"
+	"openaccess-sync/data/cache"
+	"openaccess-sync/data/model/lenel"
 	"openaccess-sync/util/date"
 
 	"github.com/xuri/excelize/v2"
 )
 
 // ExportXLSX writes the cache contents to an XLSX file with 5 sheets.
-func ExportXLSX(cache *DataCache, path string) error {
+func ExportXLSX(cache *cache.DataCache, path string) error {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -64,7 +65,7 @@ func writeHeader(f *excelize.File, sheet string, headers []string, style int) er
 	return nil
 }
 
-func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
+func writeBadgesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
 	const sheet = "badges"
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
@@ -82,7 +83,7 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 
 	levelsByBadgeID := cache.GetAccessLevelsByBadge()
 
-	for i, badge := range cache.badgeList {
+	for i, badge := range cache.GetBadges() {
 		row := i + 2
 		vals := []any{
 			badge.ID,
@@ -113,7 +114,7 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 	return nil
 }
 
-func writeCardholdersSheet(f *excelize.File, cache *DataCache, style int) error {
+func writeCardholdersSheet(f *excelize.File, cache *cache.DataCache, style int) error {
 	const sheet = "cardholders"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -124,7 +125,7 @@ func writeCardholdersSheet(f *excelize.File, cache *DataCache, style int) error 
 		return err
 	}
 
-	for i, ch := range cache.cardholderList {
+	for i, ch := range cache.GetCardholders() {
 		row := i + 2
 		for col, v := range []any{ch.ID, ch.SSNO, ch.FirstName, ch.LastName} {
 			if err := f.SetCellValue(sheet, cell(col+1, row), v); err != nil {
@@ -135,7 +136,7 @@ func writeCardholdersSheet(f *excelize.File, cache *DataCache, style int) error 
 	return nil
 }
 
-func writeAccessLevelsSheet(f *excelize.File, cache *DataCache, style int) error {
+func writeAccessLevelsSheet(f *excelize.File, cache *cache.DataCache, style int) error {
 	const sheet = "access levels"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -146,7 +147,7 @@ func writeAccessLevelsSheet(f *excelize.File, cache *DataCache, style int) error
 		return err
 	}
 
-	for i, al := range cache.accessLevelList {
+	for i, al := range cache.GetAccessLevels() {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), al.ID); err != nil {
 			return err
@@ -160,7 +161,7 @@ func writeAccessLevelsSheet(f *excelize.File, cache *DataCache, style int) error
 	return nil
 }
 
-func writeBadgeTypesSheet(f *excelize.File, cache *DataCache, style int) error {
+func writeBadgeTypesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
 	const sheet = "badge types"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -171,7 +172,7 @@ func writeBadgeTypesSheet(f *excelize.File, cache *DataCache, style int) error {
 		return err
 	}
 
-	for i, bt := range cache.badgeTypeList {
+	for i, bt := range cache.GetBadgeTypes() {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), bt.ID); err != nil {
 			return err
@@ -184,7 +185,7 @@ func writeBadgeTypesSheet(f *excelize.File, cache *DataCache, style int) error {
 	return nil
 }
 
-func writeBadgeStatusesSheet(f *excelize.File, cache *DataCache, style int) error {
+func writeBadgeStatusesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
 	const sheet = "badge status"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -195,7 +196,7 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *DataCache, style int) erro
 		return err
 	}
 
-	for i, bs := range cache.badgeStatusList {
+	for i, bs := range cache.GetBadgeStatuses() {
 		row := i + 2
 		if err := f.SetCellValue(sheet, cell(1, row), bs.ID); err != nil {
 			return err
@@ -209,7 +210,7 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *DataCache, style int) erro
 	return nil
 }
 
-func badgeStatusName(b *models.LnlBadge) string {
+func badgeStatusName(b *lenel.LnlBadge) string {
 	if b.Status != nil {
 		return b.Status.Name
 	}
@@ -217,7 +218,7 @@ func badgeStatusName(b *models.LnlBadge) string {
 	return ""
 }
 
-func badgeTypeName(b *models.LnlBadge) string {
+func badgeTypeName(b *lenel.LnlBadge) string {
 	if b.Type != nil {
 		return b.Type.Name
 	}
@@ -225,7 +226,7 @@ func badgeTypeName(b *models.LnlBadge) string {
 	return ""
 }
 
-func cardholderSSNO(b *models.LnlBadge) string {
+func cardholderSSNO(b *lenel.LnlBadge) string {
 	if b.Cardholder != nil {
 		return b.Cardholder.SSNO
 	}

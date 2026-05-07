@@ -6,6 +6,7 @@ import (
 	"log"
 	client2 "openaccess-sync/client"
 	"openaccess-sync/config"
+	"openaccess-sync/data/cache"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -34,22 +35,22 @@ func main() {
 		}
 	}()
 
-	cache := NewDataCache(client)
+	cache := cache.NewDataCache(client)
 	if err := cache.Fill(); err != nil {
 		log.Fatalf("Failed to load API data: %v", err)
 	}
 
 	switch cfg.Mode {
 	case config.ModeExport:
-		arc := BuildAccessRecordCache(cache)
+		arc := cache.BuildAccessRecordCache(cache)
 
-		err = PrintCSVReport(arc.records, cfg.File)
+		err = PrintCSVReport(arc.Records(), cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 
 	case config.ModeSync:
-		arc := BuildAccessRecordCache(cache)
+		arc := cache.BuildAccessRecordCache(cache)
 
 		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
@@ -65,7 +66,7 @@ func main() {
 			defer f.Close()
 			diffWriter = f
 		}
-		result := CompareRecords(csvRecords, arc.records, diffWriter)
+		result := CompareRecords(csvRecords, arc.Records(), diffWriter)
 
 		log.Printf(
 			"Total records: %d, Existing %d, Update %d, Delete %d, New %d",

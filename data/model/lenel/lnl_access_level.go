@@ -1,4 +1,9 @@
-package models
+package lenel
+
+import (
+	"openaccess-sync/data"
+	"openaccess-sync/util/json"
+)
 
 // LnlAccessLevel represents an access level from the OpenAccess API.
 type LnlAccessLevel struct {
@@ -7,14 +12,14 @@ type LnlAccessLevel struct {
 }
 
 func NewLnlAccessLevel(props map[string]any) (*LnlAccessLevel, error) {
-	id := propInt(props, "ID")
+	id := json.PropToInt(props, "ID")
 	if id == 0 {
-		return nil, ErrAccessLevelMissingID
+		return nil, data.ErrAccessLevelMissingID
 	}
 
-	name := propStr(props, "Name")
+	name := json.PropToStr(props, "Name")
 	if name == "" {
-		return nil, ErrAccessLevelMissingName
+		return nil, data.ErrAccessLevelMissingName
 	}
 
 	return &LnlAccessLevel{ID: id, Name: name}, nil

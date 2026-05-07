@@ -27,3 +27,12 @@ func Parse(s string) *time.Time {
 
 	return &t
 }
+
+// ISOStr returns the ISO 8601 string for a date, or nil if the date is nil.
+func ISO8601Str(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+
+	return t.Format("2006-01-02")
+}

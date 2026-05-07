@@ -1,4 +1,9 @@
-package models
+package lenel
+
+import (
+	"openaccess-sync/data"
+	"openaccess-sync/util/json"
+)
 
 // LnlBadgeStatus represents a badge status from the OpenAccess API.
 type LnlBadgeStatus struct {
@@ -7,14 +12,14 @@ type LnlBadgeStatus struct {
 }
 
 func NewLnlBadgeStatus(props map[string]any) (*LnlBadgeStatus, error) {
-	id := propInt(props, "ID")
+	id := json.PropToInt(props, "ID")
 	if id == 0 {
-		return nil, ErrBadgeStatusMissingID
+		return nil, data.ErrBadgeStatusMissingID
 	}
 
-	name := propStr(props, "Name")
+	name := json.PropToStr(props, "Name")
 	if name == "" {
-		return nil, ErrBadgeStatusMissingName
+		return nil, data.ErrBadgeStatusMissingName
 	}
 
 	return &LnlBadgeStatus{ID: id, Name: name}, nil

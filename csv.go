@@ -4,15 +4,14 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
+	"openaccess-sync/data/model/csv"
 	"openaccess-sync/util/date"
 	"os"
 	"strings"
-
-	"openaccess-sync/models"
 )
 
 // ParseCSV reads a pipe-delimited access record CSV from path.
-func ParseCSV(path string) ([]*models.AccessRecord, error) {
+func ParseCSV(path string) ([]*internal.AccessRecord, error) {
 	log.Printf("Parsing access records from file: %s", path)
 
 	f, err := os.Open(path)
@@ -36,7 +35,7 @@ func ParseCSV(path string) ([]*models.AccessRecord, error) {
 		col[strings.TrimSpace(h)] = i
 	}
 
-	var records []*models.AccessRecord
+	var records []*internal.AccessRecord
 	for {
 		row, err := cr.Read()
 
@@ -60,7 +59,7 @@ func ParseCSV(path string) ([]*models.AccessRecord, error) {
 	return records, nil
 }
 
-func mapRowToAccessRecord(row []string, col map[string]int) (*models.AccessRecord, error) {
+func mapRowToAccessRecord(row []string, col map[string]int) (*internal.AccessRecord, error) {
 	get := func(name string) string {
 		i, ok := col[name]
 
@@ -71,7 +70,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*models.AccessRecor
 		return row[i]
 	}
 
-	return models.NewAccessRecord(
+	return internal.NewAccessRecord(
 		get("ssno"),
 		get("first"),
 		get("last"),
@@ -90,7 +89,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*models.AccessRecor
 }
 
 // PrintCSVReport writes the access records to a pipe-delimited CSV file.
-func PrintCSVReport(records []*models.AccessRecord, path string) error {
+func PrintCSVReport(records []*internal.AccessRecord, path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err

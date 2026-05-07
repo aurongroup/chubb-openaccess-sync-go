@@ -1,7 +1,12 @@
-package models
+package lenel
 
 import (
 	"fmt"
+	"openaccess-sync/data"
+	"openaccess-sync/data/cache"
+	"openaccess-sync/data/model/csv"
+	"openaccess-sync/util/date"
+	"openaccess-sync/util/json"
 	"time"
 )
 
@@ -16,49 +21,49 @@ type LnlBadge struct {
 	Cardholder *LnlCardholder
 }
 
-func NewLnlBadge(props map[string]any, cache Cache) (*LnlBadge, error) {
+func NewLnlBadge(props map[string]any, cache *cache.DataCache) (*LnlBadge, error) {
 	if cache == nil {
-		return nil, ErrBadgeNilCache
+		return nil, data.ErrBadgeNilCache
 	}
 
-	id := propInt(props, "ID")
+	id := json.PropToInt(props, "ID")
 	if id == 0 {
-		return nil, ErrBadgeMissingID
+		return nil, data.ErrBadgeMissingID
 	}
 
-	badgeKey := propInt(props, "BADGEKEY")
+	badgeKey := json.PropToInt(props, "BADGEKEY")
 	if badgeKey == 0 {
-		return nil, ErrBadgeMissingBadgeKey
+		return nil, data.ErrBadgeMissingBadgeKey
 	}
 
 	b := &LnlBadge{
 		ID:         id,
 		BadgeKey:   badgeKey,
-		Activate:   propDate(props, "ACTIVATE"),
-		Deactivate: propDate(props, "DEACTIVATE"),
+		Activate:   json.PropToDate(props, "ACTIVATE"),
+		Deactivate: json.PropToDate(props, "DEACTIVATE"),
 	}
 
-	statusID := propInt(props, "STATUS")
+	statusID := json.PropToInt(props, "STATUS")
 	if statusID == 0 {
-		return nil, ErrBadgeUnresolvedStatus
+		return nil, data.ErrBadgeUnresolvedStatus
 	}
 
 	b.Status = cache.GetBadgeStatus(statusID)
 	if b.Status == nil {
-		return nil, ErrBadgeUnresolvedStatus
+		return nil, data.ErrBadgeUnresolvedStatus
 	}
 
-	typeID := propInt(props, "TYPE")
+	typeID := json.PropToInt(props, "TYPE")
 	if typeID == 0 {
-		return nil, ErrBadgeUnresolvedType
+		return nil, data.ErrBadgeUnresolvedType
 	}
 
 	b.Type = cache.GetBadgeType(typeID)
 	if b.Type == nil {
-		return nil, ErrBadgeUnresolvedType
+		return nil, data.ErrBadgeUnresolvedType
 	}
 
-	if personID := propInt(props, "PERSONID"); personID != 0 {
+	if personID := json.PropToInt(props, "PERSONID"); personID != 0 {
 		b.Cardholder = cache.GetCardholder(personID)
 	}
 
@@ -66,7 +71,7 @@ func NewLnlBadge(props map[string]any, cache Cache) (*LnlBadge, error) {
 }
 
 // ToAccessRecord builds an AccessRecord from an LnlBadge and its access levels.
-func (badge *LnlBadge) ToAccessRecord(accessLevels []*LnlAccessLevel) (*AccessRecord, error) {
+func (badge *LnlBadge) ToAccessRecord(accessLevels []*LnlAccessLevel) (*csv.AccessRecord, error) {
 	var ssno, first, last, status, badgeType string
 
 	if badge.Cardholder != nil {
@@ -88,7 +93,7 @@ func (badge *LnlBadge) ToAccessRecord(accessLevels []*LnlAccessLevel) (*AccessRe
 		badgeType = badge.Type.Name
 	}
 
-	return NewAccessRecord(
+	return csv.NewAccessRecord(
 		ssno, first, last,
 		lvl[0], lvl[1], lvl[2], lvl[3], lvl[4], lvl[5],
 		fmt.Sprintf("%d", badge.ID),
@@ -103,8 +108,8 @@ func (badge *LnlBadge) ToJSON() map[string]any {
 		"type_name": "Lnl_Badge",
 		"property_value_map": map[string]any{
 			"badgeKey":   badge.BadgeKey,
-			"activate":   dateStr(badge.Activate),
-			"deactivate": dateStr(badge.Deactivate),
+			"activate":   date.ISO8601Str(badge.Activate),
+			"deactivate": date.ISO8601Str(badge.Deactivate),
 		},
 	}
 }

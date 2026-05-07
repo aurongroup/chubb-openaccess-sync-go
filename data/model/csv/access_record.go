@@ -1,11 +1,21 @@
-package models
+package csv
 
 import (
+	"errors"
 	"fmt"
+	"openaccess-sync/data"
 	"openaccess-sync/util/date"
 	"strings"
 	"time"
 	"unicode"
+)
+
+var (
+	// AccessRecord
+	ErrAccessRecordMissingLast      = errors.New("access record: missing required Last")
+	ErrAccessRecordMissingBadgeID   = errors.New("access record: missing required BadgeID")
+	ErrAccessRecordMissingStatus    = errors.New("access record: missing required Status")
+	ErrAccessRecordMissingBadgeType = errors.New("access record: missing required BadgeType")
 )
 
 // AccessRecord represents a single row in the pipe-delimited access control CSV.
@@ -24,7 +34,7 @@ type AccessRecord struct {
 	Deactivate    *time.Time
 	Status        string
 	BadgeType     string
-	SyncStatus    SyncStatus
+	SyncStatus    data.SyncStatus
 	CardholderKey string
 }
 

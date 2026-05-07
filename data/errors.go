@@ -1,14 +1,8 @@
-package models
+package data
 
 import "errors"
 
 var (
-	// AccessRecord
-	ErrAccessRecordMissingLast      = errors.New("access record: missing required Last")
-	ErrAccessRecordMissingBadgeID   = errors.New("access record: missing required BadgeID")
-	ErrAccessRecordMissingStatus    = errors.New("access record: missing required Status")
-	ErrAccessRecordMissingBadgeType = errors.New("access record: missing required BadgeType")
-
 	// LnlBadgeStatus
 	ErrBadgeStatusMissingID   = errors.New("badge status: missing required ID")
 	ErrBadgeStatusMissingName = errors.New("badge status: missing required Name")
