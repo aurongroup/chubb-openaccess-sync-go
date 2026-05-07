@@ -1,31 +1,31 @@
-package main
+package models
 
 import (
 	"testing"
 	"time"
 )
 
-// ---- formatDate ----
+// ---- FormatDate ----
 
 func TestFormatDate_shouldReturnFormattedDate(t *testing.T) {
 	d := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
-	got := formatDate(&d)
+	got := FormatDate(&d)
 	if got != "2018-09-12" {
 		t.Errorf("expected %q, got %q", "2018-09-12", got)
 	}
 }
 
 func TestFormatDate_shouldReturnEmptyStringForNil(t *testing.T) {
-	got := formatDate(nil)
+	got := FormatDate(nil)
 	if got != "" {
 		t.Errorf("expected empty string, got %q", got)
 	}
 }
 
-// ---- parseDate ----
+// ---- ParseDate ----
 
 func TestParseDate_shouldParseValidDate(t *testing.T) {
-	d := parseDate("2018-09-12")
+	d := ParseDate("2018-09-12")
 	if d == nil {
 		t.Fatal("expected non-nil date")
 	}
@@ -37,14 +37,14 @@ func TestParseDate_shouldParseValidDate(t *testing.T) {
 
 func TestParseDate_shouldReturnNilForBlankInput(t *testing.T) {
 	for _, s := range []string{"", "  "} {
-		if got := parseDate(s); got != nil {
-			t.Errorf("parseDate(%q): expected nil, got %v", s, got)
+		if got := ParseDate(s); got != nil {
+			t.Errorf("ParseDate(%q): expected nil, got %v", s, got)
 		}
 	}
 }
 
 func TestParseDate_shouldReturnNilForInvalidFormat(t *testing.T) {
-	got := parseDate("not-a-date")
+	got := ParseDate("not-a-date")
 	if got != nil {
 		t.Errorf("expected nil for invalid input, got %v", got)
 	}
@@ -110,19 +110,5 @@ func TestPropStr_shouldReturnEmptyForMissingKey(t *testing.T) {
 	m := map[string]any{}
 	if got := propStr(m, "Name"); got != "" {
 		t.Errorf("expected empty string, got %q", got)
-	}
-}
-
-// ---- isValidURL ----
-
-func TestIsValidURL_shouldReturnTrueForHTTPS(t *testing.T) {
-	if !isValidURL("https://example.com") {
-		t.Error("expected true for https://example.com")
-	}
-}
-
-func TestIsValidURL_shouldReturnFalseForMissingHost(t *testing.T) {
-	if isValidURL("not-a-url") {
-		t.Error("expected false for 'not-a-url'")
 	}
 }

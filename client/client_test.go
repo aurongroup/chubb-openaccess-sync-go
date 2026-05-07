@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"encoding/json"
@@ -49,9 +49,9 @@ func TestPing_shouldSucceedOn200(t *testing.T) {
 func TestPing_shouldReturnErrorWhenServerUnreachable(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	c := &Client{
-		baseURL:  srv.URL,
-		appID:    "test-app",
-		http:     srv.Client(),
+		baseURL: srv.URL,
+		appID:   "test-app",
+		http:    srv.Client(),
 	}
 	srv.Close()
 	if err := c.Ping(); err == nil {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"openaccess-sync/models"
+
 	"github.com/xuri/excelize/v2"
 )
 
@@ -84,8 +86,8 @@ func writeBadgesSheet(f *excelize.File, cache *DataCache, style int) error {
 		vals := []any{
 			badge.ID,
 			badge.BadgeKey,
-			formatDate(badge.Activate),
-			formatDate(badge.Deactivate),
+			models.FormatDate(badge.Activate),
+			models.FormatDate(badge.Deactivate),
 			badgeStatusName(badge),
 			badgeTypeName(badge),
 			cardholderSSNO(badge),
@@ -206,7 +208,7 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *DataCache, style int) erro
 	return nil
 }
 
-func badgeStatusName(b *LnlBadge) string {
+func badgeStatusName(b *models.LnlBadge) string {
 	if b.Status != nil {
 		return b.Status.Name
 	}
@@ -214,7 +216,7 @@ func badgeStatusName(b *LnlBadge) string {
 	return ""
 }
 
-func badgeTypeName(b *LnlBadge) string {
+func badgeTypeName(b *models.LnlBadge) string {
 	if b.Type != nil {
 		return b.Type.Name
 	}
@@ -222,7 +224,7 @@ func badgeTypeName(b *LnlBadge) string {
 	return ""
 }
 
-func cardholderSSNO(b *LnlBadge) string {
+func cardholderSSNO(b *models.LnlBadge) string {
 	if b.Cardholder != nil {
 		return b.Cardholder.SSNO
 	}

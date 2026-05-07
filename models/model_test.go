@@ -1,17 +1,60 @@
-package main
+package models
 
 import (
 	"testing"
 	"time"
 )
 
-// newTestCache returns a DataCache pre-populated with a badge status (ID=1)
-// and badge type (ID=1), sufficient for constructing badges in tests.
-func newTestCache() *DataCache {
-	c := NewDataCache(nil)
-	c.statuses[1] = &LnlBadgeStatus{ID: 1, Name: "Active"}
-	c.badgeTypes[1] = &LnlBadgeType{ID: 1, Name: "Standard"}
+// testCache is a minimal Cache implementation for model tests.
+type testCache struct {
+	statuses     map[int]*LnlBadgeStatus
+	badgeTypes   map[int]*LnlBadgeType
+	cardholders  map[int]*LnlCardholder
+	accessLevels map[int]*LnlAccessLevel
+	badgeByKey   map[int]*LnlBadge
+}
+
+func (c *testCache) GetBadgeStatus(id int) *LnlBadgeStatus  { return c.statuses[id] }
+func (c *testCache) GetBadgeType(id int) *LnlBadgeType      { return c.badgeTypes[id] }
+func (c *testCache) GetCardholder(id int) *LnlCardholder    { return c.cardholders[id] }
+func (c *testCache) GetAccessLevel(id int) *LnlAccessLevel  { return c.accessLevels[id] }
+func (c *testCache) GetBadgeByKey(key int) *LnlBadge        { return c.badgeByKey[key] }
+
+func newTestCache() *testCache {
+	return &testCache{
+		statuses:     map[int]*LnlBadgeStatus{1: {ID: 1, Name: "Active"}},
+		badgeTypes:   map[int]*LnlBadgeType{1: {ID: 1, Name: "Standard"}},
+		cardholders:  map[int]*LnlCardholder{},
+		accessLevels: map[int]*LnlAccessLevel{},
+		badgeByKey:   map[int]*LnlBadge{},
+	}
+}
+
+func newAssignmentCache() *testCache {
+	c := newTestCache()
+	c.accessLevels[10] = &LnlAccessLevel{ID: 10, Name: "Main Entrance"}
+	b := &LnlBadge{ID: 20, BadgeKey: 200, Status: c.statuses[1], Type: c.badgeTypes[1]}
+	c.badgeByKey[200] = b
 	return c
+}
+
+func assertStr(t *testing.T, field, want, got string) {
+	t.Helper()
+	if want != got {
+		t.Errorf("%s: expected %q, got %q", field, want, got)
+	}
+}
+
+func assertDate(t *testing.T, field string, want time.Time, got *time.Time) {
+	t.Helper()
+	if got == nil {
+		t.Errorf("%s: expected %v, got nil", field, want)
+		return
+	}
+
+	if !got.Equal(want) {
+		t.Errorf("%s: expected %v, got %v", field, want, *got)
+	}
 }
 
 // ---- LnlBadge tests ----
@@ -39,7 +82,7 @@ func TestLnlBadge_fromProps_shouldErrorWhenIdAbsent(t *testing.T) {
 		"BADGEKEY": float64(1),
 	}
 
-	_, err := NewLnlBadge(props, NewDataCache(nil))
+	_, err := NewLnlBadge(props, newTestCache())
 	if err != ErrBadgeMissingID {
 		t.Errorf("expected ErrBadgeMissingID, got %v", err)
 	}
@@ -289,15 +332,6 @@ func TestNewLnlCardholder_shouldErrorWhenLastNameAbsent(t *testing.T) {
 }
 
 // ---- NewLnlAccessLevelAssignment ----
-
-func newAssignmentCache() *DataCache {
-	c := newTestCache()
-	c.accessLevels[10] = &LnlAccessLevel{ID: 10, Name: "Main Entrance"}
-	b := &LnlBadge{ID: 20, BadgeKey: 200, Status: c.statuses[1], Type: c.badgeTypes[1]}
-	c.badges[20] = b
-	c.badgeByKey[200] = b
-	return c
-}
 
 func TestNewLnlAccessLevelAssignment_shouldResolveAccessLevelAndBadge(t *testing.T) {
 	props := map[string]any{"AccessLevelID": float64(10), "BadgeKey": float64(200)}

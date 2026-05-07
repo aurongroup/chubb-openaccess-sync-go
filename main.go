@@ -4,13 +4,15 @@ import (
 	"errors"
 	"io"
 	"log"
+	client2 "openaccess-sync/client"
+	"openaccess-sync/config"
 	"os"
 
 	"github.com/spf13/pflag"
 )
 
 func main() {
-	cfg, err := parseConfig(os.Args[1:])
+	cfg, err := config.Parse(os.Args[1:])
 	if err != nil {
 		if errors.Is(err, pflag.ErrHelp) {
 			os.Exit(0)
@@ -22,7 +24,7 @@ func main() {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
-	client, err := NewClient(cfg)
+	client, err := client2.NewClient(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize client: %v", err)
 	}
@@ -38,7 +40,7 @@ func main() {
 	}
 
 	switch cfg.Mode {
-	case ModeExport:
+	case config.ModeExport:
 		arc := BuildAccessRecordCache(cache)
 
 		err = PrintCSVReport(arc.records, cfg.File)
@@ -46,7 +48,7 @@ func main() {
 			log.Fatalf("Operation failed: %v", err)
 		}
 
-	case ModeSync:
+	case config.ModeSync:
 		arc := BuildAccessRecordCache(cache)
 
 		csvRecords, err := ParseCSV(cfg.File)
@@ -80,10 +82,10 @@ func main() {
 			}
 		}
 
-	case ModeCleanup:
+	case config.ModeCleanup:
 		log.Println("cleanup not yet implemented")
 
-	case ModeFullExport:
+	case config.ModeFullExport:
 		err = ExportXLSX(cache, cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)

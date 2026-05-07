@@ -6,10 +6,12 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"openaccess-sync/models"
 )
 
 // ParseCSV reads a pipe-delimited access record CSV from path.
-func ParseCSV(path string) ([]*AccessRecord, error) {
+func ParseCSV(path string) ([]*models.AccessRecord, error) {
 	log.Printf("Parsing access records from file: %s", path)
 
 	f, err := os.Open(path)
@@ -33,7 +35,7 @@ func ParseCSV(path string) ([]*AccessRecord, error) {
 		col[strings.TrimSpace(h)] = i
 	}
 
-	var records []*AccessRecord
+	var records []*models.AccessRecord
 	for {
 		row, err := cr.Read()
 
@@ -57,7 +59,7 @@ func ParseCSV(path string) ([]*AccessRecord, error) {
 	return records, nil
 }
 
-func mapRowToAccessRecord(row []string, col map[string]int) (*AccessRecord, error) {
+func mapRowToAccessRecord(row []string, col map[string]int) (*models.AccessRecord, error) {
 	get := func(name string) string {
 		i, ok := col[name]
 
@@ -68,7 +70,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*AccessRecord, erro
 		return row[i]
 	}
 
-	return NewAccessRecord(
+	return models.NewAccessRecord(
 		get("ssno"),
 		get("first"),
 		get("last"),
@@ -79,15 +81,15 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*AccessRecord, erro
 		get("acc_lvl5"),
 		get("acc_lvl6"),
 		get("badgeid"),
-		parseDate(get("activate")),
-		parseDate(get("deactivate")),
+		models.ParseDate(get("activate")),
+		models.ParseDate(get("deactivate")),
 		get("status"),
 		get("badge type"),
 	)
 }
 
 // PrintCSVReport writes the access records to a pipe-delimited CSV file.
-func PrintCSVReport(records []*AccessRecord, path string) error {
+func PrintCSVReport(records []*models.AccessRecord, path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err

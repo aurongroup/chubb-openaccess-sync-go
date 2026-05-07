@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestParseConfig_shouldParseAllCliArgs(t *testing.T) {
-	cfg, err := parseConfig([]string{
+	cfg, err := Parse([]string{
 		"-e", "https://api.example.com",
 		"-a", "myApp",
 		"-u", "admin",
@@ -27,7 +27,7 @@ func TestParseConfig_shouldParseAllCliArgs(t *testing.T) {
 }
 
 func TestParseConfig_shouldReturnEmptyStringsWhenNoArgsProvided(t *testing.T) {
-	cfg, err := parseConfig([]string{"--cleanup"})
+	cfg, err := Parse([]string{"--cleanup"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestParseConfig_shouldReturnEmptyStringsWhenNoArgsProvided(t *testing.T) {
 }
 
 func TestParseConfig_shouldParsePartialCliArgs(t *testing.T) {
-	cfg, err := parseConfig([]string{"-e", "https://api.example.com", "-u", "admin", "-k"})
+	cfg, err := Parse([]string{"-e", "https://api.example.com", "-u", "admin", "-k"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestParseConfig_shouldLoadConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := parseConfig([]string{"-c", path, "-k"})
+	cfg, err := Parse([]string{"-c", path, "-k"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestParseConfig_shouldAllowCliArgsToOverrideConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := parseConfig([]string{
+	cfg, err := Parse([]string{
 		"-c", path,
 		"-e", "https://from-cli.example.com",
 		"-u", "cliUser",
@@ -108,7 +108,7 @@ func TestParseConfig_shouldHandlePartialConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg, err := parseConfig([]string{"-c", path, "-k"})
+	cfg, err := Parse([]string{"-c", path, "-k"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestParseConfig_shouldHandlePartialConfigFile(t *testing.T) {
 }
 
 func TestParseConfig_shouldReturnErrorOnInvalidConfigFile(t *testing.T) {
-	_, err := parseConfig([]string{"-c", "/nonexistent/path/config.properties", "-k"})
+	_, err := Parse([]string{"-c", "/nonexistent/path/config.properties", "-k"})
 	if err == nil {
 		t.Fatal("expected error for nonexistent config file")
 	}
@@ -202,7 +202,7 @@ func TestValidate_shouldErrorWhenDirectoryMissing(t *testing.T) {
 }
 
 func TestParseConfig_shouldAcceptLongOptionNames(t *testing.T) {
-	cfg, err := parseConfig([]string{
+	cfg, err := Parse([]string{
 		"--endpoint", "https://api.example.com",
 		"--application", "myApp",
 		"--user", "admin",

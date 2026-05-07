@@ -4,34 +4,12 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"openaccess-sync/models"
 )
-
-// SyncStatus represents the result of comparing a CSV record against the API.
-type SyncStatus int
-
-const (
-	SyncNew SyncStatus = iota
-	SyncExisting
-	SyncUpdate
-	SyncDelete
-)
-
-func (s SyncStatus) String() string {
-	switch s {
-	case SyncNew:
-		return "new"
-	case SyncExisting:
-		return "existing"
-	case SyncUpdate:
-		return "update"
-	case SyncDelete:
-		return "delete"
-	}
-	return "unknown"
-}
 
 // ContentEquals returns true if two AccessRecords have identical content across all 14 fields.
-func ContentEquals(a, b *AccessRecord, w io.Writer) bool {
+func ContentEquals(a, b *models.AccessRecord, w io.Writer) bool {
 	var diffs []string
 
 	if a.SSNO != b.SSNO {
@@ -102,18 +80,18 @@ func dateEqual(a, b *time.Time) bool {
 // CompareResult holds the output of CompareRecords grouped by sync status.
 // All contains every record across all buckets in insertion order (New, Existing, Update, Delete).
 type CompareResult struct {
-	New      []*AccessRecord
-	Existing []*AccessRecord
-	Update   []*AccessRecord
-	Delete   []*AccessRecord
-	All      []*AccessRecord
+	New      []*models.AccessRecord
+	Existing []*models.AccessRecord
+	Update   []*models.AccessRecord
+	Delete   []*models.AccessRecord
+	All      []*models.AccessRecord
 }
 
 // CompareRecords classifies each record in first against second:
 // NEW if absent from second, EXISTING if content matches, UPDATE if different.
 // If a record in second is not in first it is marked DELETE.
-func CompareRecords(first, second []*AccessRecord, w io.Writer) CompareResult {
-	secondByID := make(map[string]*AccessRecord, len(second))
+func CompareRecords(first, second []*models.AccessRecord, w io.Writer) CompareResult {
+	secondByID := make(map[string]*models.AccessRecord, len(second))
 	for _, r := range second {
 		secondByID[r.BadgeID] = r
 	}
@@ -125,13 +103,13 @@ func CompareRecords(first, second []*AccessRecord, w io.Writer) CompareResult {
 		firstIDs[r.BadgeID] = struct{}{}
 
 		if s, ok := secondByID[r.BadgeID]; !ok {
-			r.SyncStatus = SyncNew
+			r.SyncStatus = models.SyncNew
 			result.New = append(result.New, r)
 		} else if ContentEquals(r, s, w) {
-			r.SyncStatus = SyncExisting
+			r.SyncStatus = models.SyncExisting
 			result.Existing = append(result.Existing, r)
 		} else {
-			r.SyncStatus = SyncUpdate
+			r.SyncStatus = models.SyncUpdate
 			result.Update = append(result.Update, r)
 		}
 		result.All = append(result.All, r)
@@ -139,7 +117,7 @@ func CompareRecords(first, second []*AccessRecord, w io.Writer) CompareResult {
 
 	for _, r := range second {
 		if _, ok := firstIDs[r.BadgeID]; !ok {
-			r.SyncStatus = SyncDelete
+			r.SyncStatus = models.SyncDelete
 			result.Delete = append(result.Delete, r)
 			result.All = append(result.All, r)
 		}

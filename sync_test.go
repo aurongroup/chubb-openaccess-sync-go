@@ -3,12 +3,14 @@ package main
 import (
 	"testing"
 	"time"
+
+	"openaccess-sync/models"
 )
 
 // ---- ContentEquals ----
 
 func TestContentEquals_shouldReturnTrueForIdenticalRecords(t *testing.T) {
-	r, err := NewAccessRecord("A", "Bob", "Smith", "L1", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	r, err := models.NewAccessRecord("A", "Bob", "Smith", "L1", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,8 +20,8 @@ func TestContentEquals_shouldReturnTrueForIdenticalRecords(t *testing.T) {
 }
 
 func TestContentEquals_shouldReturnFalseWhenFieldDiffers(t *testing.T) {
-	base := func(first string) *AccessRecord {
-		r, err := NewAccessRecord("A", first, "Smith", "L1", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	base := func(first string) *models.AccessRecord {
+		r, err := models.NewAccessRecord("A", first, "Smith", "L1", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,11 +34,11 @@ func TestContentEquals_shouldReturnFalseWhenFieldDiffers(t *testing.T) {
 
 func TestContentEquals_shouldCompareDatesCorrectly(t *testing.T) {
 	d := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	r1, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
+	r1, err := models.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
-	r2, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
+	r2, err := models.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +49,11 @@ func TestContentEquals_shouldCompareDatesCorrectly(t *testing.T) {
 
 func TestContentEquals_shouldReturnFalseWhenOneDateNil(t *testing.T) {
 	d := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	r1, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
+	r1, err := models.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", &d, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
-	r2, err := NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	r2, err := models.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,13 +66,13 @@ func TestContentEquals_shouldReturnFalseWhenOneDateNil(t *testing.T) {
 
 func TestSyncStatus_String_shouldReturnAllLabels(t *testing.T) {
 	cases := []struct {
-		s    SyncStatus
+		s    models.SyncStatus
 		want string
 	}{
-		{SyncNew, "new"},
-		{SyncExisting, "existing"},
-		{SyncUpdate, "update"},
-		{SyncDelete, "delete"},
+		{models.SyncNew, "new"},
+		{models.SyncExisting, "existing"},
+		{models.SyncUpdate, "update"},
+		{models.SyncDelete, "delete"},
 	}
 	for _, c := range cases {
 		if got := c.s.String(); got != c.want {
@@ -80,7 +82,7 @@ func TestSyncStatus_String_shouldReturnAllLabels(t *testing.T) {
 }
 
 func TestSyncStatus_String_shouldReturnUnknownForInvalidValue(t *testing.T) {
-	if got := SyncStatus(99).String(); got != "unknown" {
+	if got := models.SyncStatus(99).String(); got != "unknown" {
 		t.Errorf("expected %q, got %q", "unknown", got)
 	}
 }

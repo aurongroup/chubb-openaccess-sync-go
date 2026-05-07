@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"openaccess-sync/config"
 	"strconv"
 	"time"
 
@@ -66,7 +67,7 @@ type Client struct {
 }
 
 // NewClient creates a Client, pings, and authenticates.
-func NewClient(cfg AppConfig) (*Client, error) {
+func NewClient(cfg config.AppConfig) (*Client, error) {
 	transport := &http.Transport{
 		TLSHandshakeTimeout:   defaultConnectTimeout,
 		ResponseHeaderTimeout: defaultRequestTimeout,

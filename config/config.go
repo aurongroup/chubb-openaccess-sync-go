@@ -1,8 +1,9 @@
-package main
+package config
 
 import (
 	"errors"
 	"fmt"
+	"openaccess-sync/util"
 	"strings"
 
 	"github.com/magiconair/properties"
@@ -45,7 +46,7 @@ func (c AppConfig) Validate() error {
 		return errors.New("endpoint is required")
 	}
 
-	if !isValidURL(c.Endpoint) {
+	if !util.IsValidURL(c.Endpoint) {
 		return errors.New("endpoint must be a valid URL")
 	}
 
@@ -72,9 +73,9 @@ func (c AppConfig) Validate() error {
 	return nil
 }
 
-// parseConfig parses CLI arguments into an AppConfig.
+// Parse parses CLI arguments into an AppConfig.
 // Config file values (if -c is given) are loaded first; CLI flags override them.
-func parseConfig(args []string) (AppConfig, error) {
+func Parse(args []string) (AppConfig, error) {
 	fs := pflag.NewFlagSet("openaccess-sync", pflag.ContinueOnError)
 
 	var configFile string

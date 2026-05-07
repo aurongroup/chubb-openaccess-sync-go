@@ -1,13 +1,12 @@
-package main
+package models
 
 import (
-	"net/url"
 	"strings"
 	"time"
 )
 
-// formatDate formats a date as ISO 8601 (yyyy-MM-dd).
-func formatDate(t *time.Time) string {
+// FormatDate formats a date as ISO 8601 (yyyy-MM-dd).
+func FormatDate(t *time.Time) string {
 	if t == nil {
 		return ""
 	}
@@ -15,8 +14,8 @@ func formatDate(t *time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-// parseDate parses a date in ISO 8601 (yyyy-MM-dd format). Returns nil for blank input.
-func parseDate(s string) *time.Time {
+// ParseDate parses a date in ISO 8601 (yyyy-MM-dd format). Returns nil for blank input.
+func ParseDate(s string) *time.Time {
 	if strings.TrimSpace(s) == "" {
 		return nil
 	}
@@ -27,15 +26,6 @@ func parseDate(s string) *time.Time {
 	}
 
 	return &t
-}
-
-func isValidURL(s string) bool {
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return false
-	}
-
-	return u.Host != ""
 }
 
 // propInt extracts an integer value from a property_value_map.
@@ -72,11 +62,10 @@ func propStr(m map[string]any, key string) string {
 
 // propDate extracts a date (ISO 8601 YYYY-MM-DD) from a property_value_map.
 func propDate(m map[string]any, key string) *time.Time {
-	return parseDate(propStr(m, key))
+	return ParseDate(propStr(m, key))
 }
 
 // dateStr returns the ISO 8601 string for a date, or nil if the date is nil.
-// Used by ToJSON methods.
 func dateStr(t *time.Time) any {
 	if t == nil {
 		return nil
