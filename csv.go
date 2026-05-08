@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/csv"
+	ecsv "encoding/csv"
 	"io"
 	"log"
 	"openaccess-sync/data/model/csv"
@@ -11,7 +11,7 @@ import (
 )
 
 // ParseCSV reads a pipe-delimited access record CSV from path.
-func ParseCSV(path string) ([]*internal.AccessRecord, error) {
+func ParseCSV(path string) ([]*csv.AccessRecord, error) {
 	log.Printf("Parsing access records from file: %s", path)
 
 	f, err := os.Open(path)
@@ -20,7 +20,7 @@ func ParseCSV(path string) ([]*internal.AccessRecord, error) {
 	}
 	defer f.Close()
 
-	cr := csv.NewReader(f)
+	cr := ecsv.NewReader(f)
 	cr.Comma = '|'
 	cr.LazyQuotes = true
 
@@ -35,7 +35,7 @@ func ParseCSV(path string) ([]*internal.AccessRecord, error) {
 		col[strings.TrimSpace(h)] = i
 	}
 
-	var records []*internal.AccessRecord
+	var records []*csv.AccessRecord
 	for {
 		row, err := cr.Read()
 
@@ -59,7 +59,7 @@ func ParseCSV(path string) ([]*internal.AccessRecord, error) {
 	return records, nil
 }
 
-func mapRowToAccessRecord(row []string, col map[string]int) (*internal.AccessRecord, error) {
+func mapRowToAccessRecord(row []string, col map[string]int) (*csv.AccessRecord, error) {
 	get := func(name string) string {
 		i, ok := col[name]
 
@@ -70,7 +70,7 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*internal.AccessRec
 		return row[i]
 	}
 
-	return internal.NewAccessRecord(
+	return csv.NewAccessRecord(
 		get("ssno"),
 		get("first"),
 		get("last"),
@@ -89,14 +89,14 @@ func mapRowToAccessRecord(row []string, col map[string]int) (*internal.AccessRec
 }
 
 // PrintCSVReport writes the access records to a pipe-delimited CSV file.
-func PrintCSVReport(records []*internal.AccessRecord, path string) error {
+func PrintCSVReport(records []*csv.AccessRecord, path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	w := csv.NewWriter(f)
+	w := ecsv.NewWriter(f)
 	w.Comma = '|'
 
 	header := []string{

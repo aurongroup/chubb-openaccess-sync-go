@@ -6,7 +6,7 @@ import (
 	"log"
 	client2 "openaccess-sync/client"
 	"openaccess-sync/config"
-	"openaccess-sync/data/cache"
+	"openaccess-sync/data/cache/lenel"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -35,7 +35,7 @@ func main() {
 		}
 	}()
 
-	cache := cache.NewDataCache(client)
+	cache := lenel.NewDataCache(client)
 	if err := cache.Fill(); err != nil {
 		log.Fatalf("Failed to load API data: %v", err)
 	}

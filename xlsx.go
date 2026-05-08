@@ -1,7 +1,7 @@
 package main
 
 import (
-	"openaccess-sync/data/cache"
+	lenel2 "openaccess-sync/data/cache/lenel"
 	"openaccess-sync/data/model/lenel"
 	"openaccess-sync/util/date"
 
@@ -9,7 +9,7 @@ import (
 )
 
 // ExportXLSX writes the cache contents to an XLSX file with 5 sheets.
-func ExportXLSX(cache *cache.DataCache, path string) error {
+func ExportXLSX(cache *lenel2.DataCache, path string) error {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -65,7 +65,7 @@ func writeHeader(f *excelize.File, sheet string, headers []string, style int) er
 	return nil
 }
 
-func writeBadgesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
+func writeBadgesSheet(f *excelize.File, cache *lenel2.DataCache, style int) error {
 	const sheet = "badges"
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
@@ -114,7 +114,7 @@ func writeBadgesSheet(f *excelize.File, cache *cache.DataCache, style int) error
 	return nil
 }
 
-func writeCardholdersSheet(f *excelize.File, cache *cache.DataCache, style int) error {
+func writeCardholdersSheet(f *excelize.File, cache *lenel2.DataCache, style int) error {
 	const sheet = "cardholders"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -136,7 +136,7 @@ func writeCardholdersSheet(f *excelize.File, cache *cache.DataCache, style int) 
 	return nil
 }
 
-func writeAccessLevelsSheet(f *excelize.File, cache *cache.DataCache, style int) error {
+func writeAccessLevelsSheet(f *excelize.File, cache *lenel2.DataCache, style int) error {
 	const sheet = "access levels"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -161,7 +161,7 @@ func writeAccessLevelsSheet(f *excelize.File, cache *cache.DataCache, style int)
 	return nil
 }
 
-func writeBadgeTypesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
+func writeBadgeTypesSheet(f *excelize.File, cache *lenel2.DataCache, style int) error {
 	const sheet = "badge types"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -185,7 +185,7 @@ func writeBadgeTypesSheet(f *excelize.File, cache *cache.DataCache, style int) e
 	return nil
 }
 
-func writeBadgeStatusesSheet(f *excelize.File, cache *cache.DataCache, style int) error {
+func writeBadgeStatusesSheet(f *excelize.File, cache *lenel2.DataCache, style int) error {
 	const sheet = "badge status"
 
 	if _, err := f.NewSheet(sheet); err != nil {
@@ -210,7 +210,7 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *cache.DataCache, style int
 	return nil
 }
 
-func badgeStatusName(b *lenel.LnlBadge) string {
+func badgeStatusName(b *lenel.Badge) string {
 	if b.Status != nil {
 		return b.Status.Name
 	}
@@ -218,7 +218,7 @@ func badgeStatusName(b *lenel.LnlBadge) string {
 	return ""
 }
 
-func badgeTypeName(b *lenel.LnlBadge) string {
+func badgeTypeName(b *lenel.Badge) string {
 	if b.Type != nil {
 		return b.Type.Name
 	}
@@ -226,7 +226,7 @@ func badgeTypeName(b *lenel.LnlBadge) string {
 	return ""
 }
 
-func cardholderSSNO(b *lenel.LnlBadge) string {
+func cardholderSSNO(b *lenel.Badge) string {
 	if b.Cardholder != nil {
 		return b.Cardholder.SSNO
 	}
