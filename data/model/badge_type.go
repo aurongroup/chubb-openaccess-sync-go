@@ -1,4 +1,4 @@
-package lenel
+package model
 
 import (
 	"errors"
@@ -16,16 +16,25 @@ var (
 	ErrBadgeTypeMissingName = errors.New("badge type: missing required Name")
 )
 
-func NewBadgeType(props map[string]any) (*BadgeType, error) {
-	id := json.PropToInt(props, "ID")
+func NewBadgeType(id int, name string) (*BadgeType, error) {
 	if id == 0 {
 		return nil, ErrBadgeTypeMissingID
 	}
 
-	name := json.PropToStr(props, "Name")
 	if name == "" {
 		return nil, ErrBadgeTypeMissingName
 	}
 
-	return &BadgeType{ID: id, Name: name}, nil
+	return &BadgeType{
+			ID:   id,
+			Name: name,
+		},
+		nil
+}
+
+func NewBadgeTypeFromJSON(props map[string]any) (*BadgeType, error) {
+	return NewBadgeType(
+		json.PropToInt(props, "ID"),
+		json.PropToStr(props, "Name"),
+	)
 }

@@ -18,7 +18,7 @@ func TestFormat_shouldReturnFormattedDate(t *testing.T) {
 func TestFormat_shouldReturnEmptyStringForNil(t *testing.T) {
 	got := Format(nil)
 	if got != "" {
-		t.Errorf("expected empty string, got %q", got)
+		t.Errorf("expected empty strings, got %q", got)
 	}
 }
 

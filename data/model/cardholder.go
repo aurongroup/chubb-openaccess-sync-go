@@ -1,4 +1,4 @@
-package lenel
+package model
 
 import (
 	"errors"
@@ -18,22 +18,24 @@ type Cardholder struct {
 	SSNO      string
 }
 
-func NewCardholder(props map[string]any) (*Cardholder, error) {
-	id := json.PropToInt(props, "ID")
-	ssno := json.PropToStr(props, "SSNO")
-	if id == 0 && ssno == "" {
-		return nil, ErrCardholderMissingIdentifier
-	}
-
-	lastName := json.PropToStr(props, "LASTNAME")
+func NewCardholder(id int, ssno, firstName, lastName string) (*Cardholder, error) {
 	if lastName == "" {
 		return nil, ErrCardholderMissingLastName
 	}
 
 	return &Cardholder{
 		ID:        id,
-		FirstName: json.PropToStr(props, "FIRSTNAME"),
+		FirstName: firstName,
 		LastName:  lastName,
 		SSNO:      ssno,
 	}, nil
+}
+
+func NewCardholderFromJSON(props map[string]any) (*Cardholder, error) {
+	return NewCardholder(
+		json.PropToInt(props, "ID"),
+		json.PropToStr(props, "FIRSTNAME"),
+		json.PropToStr(props, "LASTNAME"),
+		json.PropToStr(props, "SSNO"),
+	)
 }

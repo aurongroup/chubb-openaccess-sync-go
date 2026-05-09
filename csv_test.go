@@ -1,7 +1,7 @@
 package main
 
 import (
-	"openaccess-sync/data/model/csv"
+	"openaccess-sync/data/model"
 	"os"
 	"strings"
 	"testing"
@@ -70,53 +70,53 @@ func TestParseCSV_shouldHandleEmptyAccessLevels(t *testing.T) {
 // ---- CompareRecords tests ----
 
 func TestCompareRecords_shouldMarkNewRecord(t *testing.T) {
-	r, err := csv.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	r, err := model.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*csv.AccessRecord{r}, []*csv.AccessRecord{}, nil)
+	result := CompareRecords([]*model.AccessRecord{r}, []*model.AccessRecord{}, nil)
 	if len(result.New) != 1 {
 		t.Errorf("expected 1 NEW record, got %v", result.New)
 	}
 }
 
 func TestCompareRecords_shouldMarkExistingRecord(t *testing.T) {
-	r, err := csv.NewAccessRecord("A", "Bob", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	r, err := model.NewAccessRecord("A", "Bob", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*csv.AccessRecord{r}, []*csv.AccessRecord{r}, nil)
+	result := CompareRecords([]*model.AccessRecord{r}, []*model.AccessRecord{r}, nil)
 	if len(result.Existing) != 1 {
 		t.Errorf("expected 1 EXISTING record, got %v", result.Existing)
 	}
 }
 
 func TestCompareRecords_shouldMarkUpdatedRecord(t *testing.T) {
-	csvRec, err := csv.NewAccessRecord("A", "New", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	csvRec, err := model.NewAccessRecord("A", "New", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	apiRec, err := csv.NewAccessRecord("A", "Old", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	apiRec, err := model.NewAccessRecord("A", "Old", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*csv.AccessRecord{csvRec}, []*csv.AccessRecord{apiRec}, nil)
+	result := CompareRecords([]*model.AccessRecord{csvRec}, []*model.AccessRecord{apiRec}, nil)
 	if len(result.Update) != 1 {
 		t.Errorf("expected 1 UPDATE record, got %v", result.Update)
 	}
 }
 
 func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
-	r, err := csv.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	r, err := model.NewAccessRecord("A", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result := CompareRecords([]*csv.AccessRecord{}, []*csv.AccessRecord{r}, nil)
+	result := CompareRecords([]*model.AccessRecord{}, []*model.AccessRecord{r}, nil)
 	if len(result.Delete) != 1 {
 		t.Errorf("expected 1 DELETE record, got %v", result.Delete)
 	}
@@ -127,11 +127,11 @@ func TestCompareRecords_shouldMarkDeletedRecord(t *testing.T) {
 func TestPrintCSVReport_shouldWriteReadableCSV(t *testing.T) {
 	activate := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
 	deactivate := time.Date(2020, 9, 12, 0, 0, 0, 0, time.UTC)
-	r1, err := csv.NewAccessRecord("8274", "BOB", "BROWN", "Coffee Fresh", "OTIS", "", "", "", "", "9017", &activate, &deactivate, "active", "Employee")
+	r1, err := model.NewAccessRecord("8274", "BOB", "BROWN", "Coffee Fresh", "OTIS", "", "", "", "", "9017", &activate, &deactivate, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
-	r2, err := csv.NewAccessRecord("1234", "Tim", "Smith", "DALKIA", "", "", "", "", "", "1923", nil, nil, "active", "Employee")
+	r2, err := model.NewAccessRecord("1234", "Tim", "Smith", "DALKIA", "", "", "", "", "", "1923", nil, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestPrintCSVReport_shouldWriteReadableCSV(t *testing.T) {
 	defer os.Remove(f.Name())
 	f.Close()
 
-	if err := PrintCSVReport([]*csv.AccessRecord{r1, r2}, f.Name()); err != nil {
+	if err := PrintCSVReport([]*model.AccessRecord{r1, r2}, f.Name()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -171,7 +171,7 @@ func TestPrintCSVReport_shouldWriteCorrectHeader(t *testing.T) {
 	defer os.Remove(f.Name())
 	f.Close()
 
-	if err := PrintCSVReport([]*csv.AccessRecord{}, f.Name()); err != nil {
+	if err := PrintCSVReport([]*model.AccessRecord{}, f.Name()); err != nil {
 		t.Fatal(err)
 	}
 

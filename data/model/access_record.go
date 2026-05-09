@@ -1,17 +1,15 @@
-package csv
+package model
 
 import (
 	"errors"
 	"fmt"
-	"openaccess-sync/data"
 	"openaccess-sync/util/date"
+	stru "openaccess-sync/util/strings"
 	"strings"
 	"time"
-	"unicode"
 )
 
 var (
-	// AccessRecord
 	ErrAccessRecordMissingLast      = errors.New("access record: missing required Last")
 	ErrAccessRecordMissingBadgeID   = errors.New("access record: missing required BadgeID")
 	ErrAccessRecordMissingStatus    = errors.New("access record: missing required Status")
@@ -34,18 +32,12 @@ type AccessRecord struct {
 	Deactivate    *time.Time
 	Status        string
 	BadgeType     string
-	SyncStatus    data.SyncStatus
 	CardholderKey string
 }
 
 func generateCardholderKey(ssno, first, last string) string {
 	str := fmt.Sprintf("%s%s%s", ssno, first, last)
-	return strings.ToUpper(strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, str))
+	return strings.ToUpper(stru.Clean(str))
 }
 
 // NewAccessRecord constructs and validates an AccessRecord.

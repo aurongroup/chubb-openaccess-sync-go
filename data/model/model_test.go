@@ -2,41 +2,39 @@ package model
 
 import (
 	"openaccess-sync/data"
-	"openaccess-sync/data/model/csv"
-	"openaccess-sync/data/model/lenel"
 	"testing"
 	"time"
 )
 
 // testCache is a minimal Cache implementation for model tests.
 type testCache struct {
-	statuses     map[int]*lenel.BadgeStatus
-	badgeTypes   map[int]*lenel.BadgeType
-	cardholders  map[int]*lenel.Cardholder
-	accessLevels map[int]*lenel.AccessLevel
-	badgeByKey   map[int]*lenel.Badge
+	statuses     map[int]*BadgeStatus
+	badgeTypes   map[int]*BadgeType
+	cardholders  map[int]*Cardholder
+	accessLevels map[int]*AccessLevel
+	badgeByKey   map[int]*Badge
 }
 
-func (c *testCache) GetBadgeStatus(id int) *lenel.BadgeStatus { return c.statuses[id] }
-func (c *testCache) GetBadgeType(id int) *lenel.BadgeType     { return c.badgeTypes[id] }
-func (c *testCache) GetCardholder(id int) *lenel.Cardholder   { return c.cardholders[id] }
-func (c *testCache) GetAccessLevel(id int) *lenel.AccessLevel { return c.accessLevels[id] }
-func (c *testCache) GetBadgeByKey(key int) *lenel.Badge       { return c.badgeByKey[key] }
+func (c *testCache) GetBadgeStatus(id int) *BadgeStatus { return c.statuses[id] }
+func (c *testCache) GetBadgeType(id int) *BadgeType     { return c.badgeTypes[id] }
+func (c *testCache) GetCardholder(id int) *Cardholder   { return c.cardholders[id] }
+func (c *testCache) GetAccessLevel(id int) *AccessLevel { return c.accessLevels[id] }
+func (c *testCache) GetBadgeByKey(key int) *Badge       { return c.badgeByKey[key] }
 
 func newTestCache() *testCache {
 	return &testCache{
-		statuses:     map[int]*lenel.BadgeStatus{1: {ID: 1, Name: "Active"}},
-		badgeTypes:   map[int]*lenel.BadgeType{1: {ID: 1, Name: "Standard"}},
-		cardholders:  map[int]*lenel.Cardholder{},
-		accessLevels: map[int]*lenel.AccessLevel{},
-		badgeByKey:   map[int]*lenel.Badge{},
+		statuses:     map[int]*BadgeStatus{1: {ID: 1, Name: "Active"}},
+		badgeTypes:   map[int]*BadgeType{1: {ID: 1, Name: "Standard"}},
+		cardholders:  map[int]*Cardholder{},
+		accessLevels: map[int]*AccessLevel{},
+		badgeByKey:   map[int]*Badge{},
 	}
 }
 
 func newAssignmentCache() *testCache {
 	c := newTestCache()
-	c.accessLevels[10] = &lenel.AccessLevel{ID: 10, Name: "Main Entrance"}
-	b := &lenel.Badge{ID: 20, BadgeKey: 200, Status: c.statuses[1], Type: c.badgeTypes[1]}
+	c.accessLevels[10] = &AccessLevel{ID: 10, Name: "Main Entrance"}
+	b := &Badge{ID: 20, BadgeKey: 200, Status: c.statuses[1], Type: c.badgeTypes[1]}
 	c.badgeByKey[200] = b
 	return c
 }
@@ -70,7 +68,7 @@ func TestLnlBadge_fromProps_shouldParseId(t *testing.T) {
 		"TYPE":     float64(1),
 	}
 
-	badge, err := lenel.NewBadge(props, newTestCache())
+	badge, err := NewBadge(props, newTestCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +83,7 @@ func TestLnlBadge_fromProps_shouldErrorWhenIdAbsent(t *testing.T) {
 		"BADGEKEY": float64(1),
 	}
 
-	_, err := lenel.NewBadge(props, newTestCache())
+	_, err := NewBadge(props, newTestCache())
 	if err != data.ErrBadgeMissingID {
 		t.Errorf("expected ErrBadgeMissingID, got %v", err)
 	}
@@ -101,7 +99,7 @@ func TestLnlBadge_toJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
 		"DEACTIVATE": "2026-12-31",
 	}
 
-	badge, err := lenel.NewBadge(props, newTestCache())
+	badge, err := NewBadge(props, newTestCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +136,7 @@ func TestLnlBadge_toJSON_shouldPutNilForAbsentDates(t *testing.T) {
 		"TYPE":     float64(1),
 	}
 
-	badge, err := lenel.NewBadge(props, newTestCache())
+	badge, err := NewBadge(props, newTestCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +165,7 @@ func TestLnlAccessLevel_fromProps_shouldParseId(t *testing.T) {
 		"Name": "Main Entrance",
 	}
 
-	al, err := lenel.NewAccessLevel(props)
+	al, err := NewAccessLevel(props)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +181,7 @@ func TestLnlAccessLevel_fromProps_shouldParseNameAndID(t *testing.T) {
 		"Name": "Conference Room",
 	}
 
-	al, err := lenel.NewAccessLevel(props)
+	al, err := NewAccessLevel(props)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +223,7 @@ func TestPropDate_shouldReturnNilForMissingKey(t *testing.T) {
 // ---- NewLnlBadgeStatus ----
 
 func TestNewLnlBadgeStatus_shouldParseIdAndName(t *testing.T) {
-	s, err := lenel.NewBadgeStatus(map[string]any{"ID": float64(3), "Name": "Active"})
+	s, err := NewBadgeStatus(map[string]any{"ID": float64(3), "Name": "Active"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,14 +236,14 @@ func TestNewLnlBadgeStatus_shouldParseIdAndName(t *testing.T) {
 }
 
 func TestNewLnlBadgeStatus_shouldErrorWhenIdAbsent(t *testing.T) {
-	_, err := lenel.NewBadgeStatus(map[string]any{"Name": "Active"})
+	_, err := NewBadgeStatus(map[string]any{"Name": "Active"})
 	if err != data.ErrBadgeStatusMissingID {
 		t.Errorf("expected ErrBadgeStatusMissingID, got %v", err)
 	}
 }
 
 func TestNewLnlBadgeStatus_shouldErrorWhenNameAbsent(t *testing.T) {
-	_, err := lenel.NewBadgeStatus(map[string]any{"ID": float64(1)})
+	_, err := NewBadgeStatus(map[string]any{"ID": float64(1)})
 	if err != data.ErrBadgeStatusMissingName {
 		t.Errorf("expected ErrBadgeStatusMissingName, got %v", err)
 	}
@@ -254,7 +252,7 @@ func TestNewLnlBadgeStatus_shouldErrorWhenNameAbsent(t *testing.T) {
 // ---- NewLnlBadgeType ----
 
 func TestNewLnlBadgeType_shouldParseIdAndName(t *testing.T) {
-	bt, err := lenel.NewBadgeType(map[string]any{"ID": float64(2), "Name": "Employee"})
+	bt, err := NewBadgeType(map[string]any{"ID": float64(2), "Name": "Employee"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,14 +265,14 @@ func TestNewLnlBadgeType_shouldParseIdAndName(t *testing.T) {
 }
 
 func TestNewLnlBadgeType_shouldErrorWhenIdAbsent(t *testing.T) {
-	_, err := lenel.NewBadgeType(map[string]any{"Name": "Employee"})
+	_, err := NewBadgeType(map[string]any{"Name": "Employee"})
 	if err != data.ErrBadgeTypeMissingID {
 		t.Errorf("expected ErrBadgeTypeMissingID, got %v", err)
 	}
 }
 
 func TestNewLnlBadgeType_shouldErrorWhenNameAbsent(t *testing.T) {
-	_, err := lenel.NewBadgeType(map[string]any{"ID": float64(2)})
+	_, err := NewBadgeType(map[string]any{"ID": float64(2)})
 	if err != data.ErrBadgeTypeMissingName {
 		t.Errorf("expected ErrBadgeTypeMissingName, got %v", err)
 	}
@@ -283,7 +281,7 @@ func TestNewLnlBadgeType_shouldErrorWhenNameAbsent(t *testing.T) {
 // ---- NewLnlCardholder ----
 
 func TestNewLnlCardholder_shouldParseAllFields(t *testing.T) {
-	ch, err := lenel.NewCardholder(map[string]any{
+	ch, err := NewCardholder(map[string]any{
 		"ID":        float64(10),
 		"SSNO":      "1234",
 		"FIRSTNAME": "Bob",
@@ -307,28 +305,28 @@ func TestNewLnlCardholder_shouldParseAllFields(t *testing.T) {
 }
 
 func TestNewLnlCardholder_shouldErrorWhenNeitherIdNorSsno(t *testing.T) {
-	_, err := lenel.NewCardholder(map[string]any{"LASTNAME": "Brown"})
+	_, err := NewCardholder(map[string]any{"LASTNAME": "Brown"})
 	if err != data.ErrCardholderMissingIdentifier {
 		t.Errorf("expected ErrCardholderMissingIdentifier, got %v", err)
 	}
 }
 
 func TestNewLnlCardholder_shouldAcceptIdWithoutSsno(t *testing.T) {
-	_, err := lenel.NewCardholder(map[string]any{"ID": float64(5), "LASTNAME": "Brown"})
+	_, err := NewCardholder(map[string]any{"ID": float64(5), "LASTNAME": "Brown"})
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 }
 
 func TestNewLnlCardholder_shouldAcceptSsnoWithoutId(t *testing.T) {
-	_, err := lenel.NewCardholder(map[string]any{"SSNO": "9999", "LASTNAME": "Brown"})
+	_, err := NewCardholder(map[string]any{"SSNO": "9999", "LASTNAME": "Brown"})
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 }
 
 func TestNewLnlCardholder_shouldErrorWhenLastNameAbsent(t *testing.T) {
-	_, err := lenel.NewCardholder(map[string]any{"ID": float64(5)})
+	_, err := NewCardholder(map[string]any{"ID": float64(5)})
 	if err != data.ErrCardholderMissingLastName {
 		t.Errorf("expected ErrCardholderMissingLastName, got %v", err)
 	}
@@ -338,7 +336,7 @@ func TestNewLnlCardholder_shouldErrorWhenLastNameAbsent(t *testing.T) {
 
 func TestNewLnlAccessLevelAssignment_shouldResolveAccessLevelAndBadge(t *testing.T) {
 	props := map[string]any{"AccessLevelID": float64(10), "BadgeKey": float64(200)}
-	a, err := lenel.NewAccessLevelAssignment(props, newAssignmentCache())
+	a, err := NewAccessLevelAssignment(props, newAssignmentCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +349,7 @@ func TestNewLnlAccessLevelAssignment_shouldResolveAccessLevelAndBadge(t *testing
 }
 
 func TestNewLnlAccessLevelAssignment_shouldErrorWhenCacheNil(t *testing.T) {
-	_, err := lenel.NewAccessLevelAssignment(map[string]any{}, nil)
+	_, err := NewAccessLevelAssignment(map[string]any{}, nil)
 	if err != data.ErrAssignmentNilCache {
 		t.Errorf("expected ErrAssignmentNilCache, got %v", err)
 	}
@@ -359,7 +357,7 @@ func TestNewLnlAccessLevelAssignment_shouldErrorWhenCacheNil(t *testing.T) {
 
 func TestNewLnlAccessLevelAssignment_shouldErrorWhenAccessLevelNotFound(t *testing.T) {
 	props := map[string]any{"AccessLevelID": float64(999), "BadgeKey": float64(200)}
-	_, err := lenel.NewAccessLevelAssignment(props, newAssignmentCache())
+	_, err := NewAccessLevelAssignment(props, newAssignmentCache())
 	if err != data.ErrAssignmentUnresolvedAccessLevel {
 		t.Errorf("expected ErrAssignmentUnresolvedAccessLevel, got %v", err)
 	}
@@ -367,7 +365,7 @@ func TestNewLnlAccessLevelAssignment_shouldErrorWhenAccessLevelNotFound(t *testi
 
 func TestNewLnlAccessLevelAssignment_shouldErrorWhenBadgeNotFound(t *testing.T) {
 	props := map[string]any{"AccessLevelID": float64(10), "BadgeKey": float64(999)}
-	_, err := lenel.NewAccessLevelAssignment(props, newAssignmentCache())
+	_, err := NewAccessLevelAssignment(props, newAssignmentCache())
 	if err != data.ErrAssignmentUnresolvedBadge {
 		t.Errorf("expected ErrAssignmentUnresolvedBadge, got %v", err)
 	}
@@ -377,7 +375,7 @@ func TestNewLnlAccessLevelAssignment_shouldErrorWhenBadgeNotFound(t *testing.T) 
 
 func TestNewLnlBadge_shouldErrorWhenCacheNil(t *testing.T) {
 	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1)}
-	_, err := lenel.NewBadge(props, nil)
+	_, err := NewBadge(props, nil)
 	if err != data.ErrBadgeNilCache {
 		t.Errorf("expected ErrBadgeNilCache, got %v", err)
 	}
@@ -385,7 +383,7 @@ func TestNewLnlBadge_shouldErrorWhenCacheNil(t *testing.T) {
 
 func TestNewLnlBadge_shouldErrorWhenBadgeKeyAbsent(t *testing.T) {
 	props := map[string]any{"ID": float64(1)}
-	_, err := lenel.NewBadge(props, newTestCache())
+	_, err := NewBadge(props, newTestCache())
 	if err != data.ErrBadgeMissingBadgeKey {
 		t.Errorf("expected ErrBadgeMissingBadgeKey, got %v", err)
 	}
@@ -393,7 +391,7 @@ func TestNewLnlBadge_shouldErrorWhenBadgeKeyAbsent(t *testing.T) {
 
 func TestNewLnlBadge_shouldErrorWhenStatusNotInCache(t *testing.T) {
 	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(999), "TYPE": float64(1)}
-	_, err := lenel.NewBadge(props, newTestCache())
+	_, err := NewBadge(props, newTestCache())
 	if err != data.ErrBadgeUnresolvedStatus {
 		t.Errorf("expected ErrBadgeUnresolvedStatus, got %v", err)
 	}
@@ -401,7 +399,7 @@ func TestNewLnlBadge_shouldErrorWhenStatusNotInCache(t *testing.T) {
 
 func TestNewLnlBadge_shouldErrorWhenTypeNotInCache(t *testing.T) {
 	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(1), "TYPE": float64(999)}
-	_, err := lenel.NewBadge(props, newTestCache())
+	_, err := NewBadge(props, newTestCache())
 	if err != data.ErrBadgeUnresolvedType {
 		t.Errorf("expected ErrBadgeUnresolvedType, got %v", err)
 	}
@@ -413,16 +411,16 @@ func TestLnlBadge_ToAccessRecord_shouldMapAllFields(t *testing.T) {
 	c := newTestCache()
 	activate := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	deactivate := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
-	badge := &lenel.Badge{
+	badge := &Badge{
 		ID:         42,
 		BadgeKey:   100,
 		Activate:   &activate,
 		Deactivate: &deactivate,
 		Status:     c.statuses[1],
 		Type:       c.badgeTypes[1],
-		Cardholder: &lenel.Cardholder{ID: 1, FirstName: "Bob", LastName: "Brown", SSNO: "1234"},
+		Cardholder: &Cardholder{ID: 1, FirstName: "Bob", LastName: "Brown", SSNO: "1234"},
 	}
-	levels := []*lenel.AccessLevel{
+	levels := []*AccessLevel{
 		{ID: 1, Name: "Main"},
 		{ID: 2, Name: "Side"},
 	}
@@ -444,7 +442,7 @@ func TestLnlBadge_ToAccessRecord_shouldMapAllFields(t *testing.T) {
 
 func TestLnlBadge_ToAccessRecord_shouldErrorWhenCardholderNil(t *testing.T) {
 	c := newTestCache()
-	badge := &lenel.Badge{ID: 5, BadgeKey: 50, Status: c.statuses[1], Type: c.badgeTypes[1]}
+	badge := &Badge{ID: 5, BadgeKey: 50, Status: c.statuses[1], Type: c.badgeTypes[1]}
 	_, err := badge.ToAccessRecord(nil)
 	if err != data.ErrAccessRecordMissingLast {
 		t.Errorf("expected ErrAccessRecordMissingLast for nil cardholder, got %v", err)
@@ -453,16 +451,16 @@ func TestLnlBadge_ToAccessRecord_shouldErrorWhenCardholderNil(t *testing.T) {
 
 func TestLnlBadge_ToAccessRecord_shouldCapAccessLevelsAtSix(t *testing.T) {
 	c := newTestCache()
-	badge := &lenel.Badge{
+	badge := &Badge{
 		ID:         7,
 		BadgeKey:   70,
 		Status:     c.statuses[1],
 		Type:       c.badgeTypes[1],
-		Cardholder: &lenel.Cardholder{ID: 1, LastName: "Smith"},
+		Cardholder: &Cardholder{ID: 1, LastName: "Smith"},
 	}
-	levels := make([]*lenel.AccessLevel, 7)
+	levels := make([]*AccessLevel, 7)
 	for i := range levels {
-		levels[i] = &lenel.AccessLevel{ID: i + 1, Name: "Level"}
+		levels[i] = &AccessLevel{ID: i + 1, Name: "Level"}
 	}
 	r, err := badge.ToAccessRecord(levels)
 	if err != nil {
@@ -474,28 +472,28 @@ func TestLnlBadge_ToAccessRecord_shouldCapAccessLevelsAtSix(t *testing.T) {
 // ---- NewAccessRecord validation ----
 
 func TestNewAccessRecord_shouldErrorWhenLastMissing(t *testing.T) {
-	_, err := csv.NewAccessRecord("", "", "", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
+	_, err := NewAccessRecord("", "", "", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
 	if err != data.ErrAccessRecordMissingLast {
 		t.Errorf("expected ErrAccessRecordMissingLast, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenBadgeIDMissing(t *testing.T) {
-	_, err := csv.NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "", nil, nil, "active", "Employee")
+	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "", nil, nil, "active", "Employee")
 	if err != data.ErrAccessRecordMissingBadgeID {
 		t.Errorf("expected ErrAccessRecordMissingBadgeID, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenStatusMissing(t *testing.T) {
-	_, err := csv.NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "", "Employee")
+	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "", "Employee")
 	if err != data.ErrAccessRecordMissingStatus {
 		t.Errorf("expected ErrAccessRecordMissingStatus, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenBadgeTypeMissing(t *testing.T) {
-	_, err := csv.NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "")
+	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "")
 	if err != data.ErrAccessRecordMissingBadgeType {
 		t.Errorf("expected ErrAccessRecordMissingBadgeType, got %v", err)
 	}
@@ -506,7 +504,7 @@ func TestNewAccessRecord_shouldErrorWhenBadgeTypeMissing(t *testing.T) {
 func TestAccessRecord_ToRow_shouldReturnAllFieldsInOrder(t *testing.T) {
 	activate := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
 	deactivate := time.Date(2020, 9, 12, 0, 0, 0, 0, time.UTC)
-	r, err := csv.NewAccessRecord("8274", "BOB", "BROWN", "L1", "L2", "L3", "L4", "L5", "L6", "9017", &activate, &deactivate, "active", "Employee")
+	r, err := NewAccessRecord("8274", "BOB", "BROWN", "L1", "L2", "L3", "L4", "L5", "L6", "9017", &activate, &deactivate, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -524,7 +522,7 @@ func TestAccessRecord_ToRow_shouldReturnAllFieldsInOrder(t *testing.T) {
 
 func TestAccessRecord_ToRow_shouldFormatDatesCorrectly(t *testing.T) {
 	d := time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC)
-	r, err := csv.NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "1", &d, nil, "active", "Employee")
+	r, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "1", &d, nil, "active", "Employee")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,6 +531,6 @@ func TestAccessRecord_ToRow_shouldFormatDatesCorrectly(t *testing.T) {
 		t.Errorf("activate: expected %q, got %q", "2024-03-05", row[10])
 	}
 	if row[11] != "" {
-		t.Errorf("deactivate: expected empty string, got %q", row[11])
+		t.Errorf("deactivate: expected empty strings, got %q", row[11])
 	}
 }

@@ -25,7 +25,7 @@ func PropToInt(m map[string]any, key string) int {
 	return 0
 }
 
-// PropToStr extracts a string value from a JSON object map.
+// PropToStr extracts a strings value from a JSON object map.
 func PropToStr(m map[string]any, key string) string {
 	v, ok := m[key]
 	if !ok || v == nil {

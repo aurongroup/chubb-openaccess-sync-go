@@ -1,4 +1,4 @@
-package lenel
+package model
 
 import (
 	"errors"
@@ -16,16 +16,25 @@ type AccessLevel struct {
 	Name string
 }
 
-func NewAccessLevel(props map[string]any) (*AccessLevel, error) {
-	id := json.PropToInt(props, "ID")
+func NewAccessLevel(id int, name string) (*AccessLevel, error) {
 	if id == 0 {
 		return nil, ErrAccessLevelMissingID
 	}
 
-	name := json.PropToStr(props, "Name")
 	if name == "" {
 		return nil, ErrAccessLevelMissingName
 	}
 
-	return &AccessLevel{ID: id, Name: name}, nil
+	return &AccessLevel{
+			ID:   id,
+			Name: name,
+		},
+		nil
+}
+
+func NewAccessLevelFromJSON(props map[string]any) (*AccessLevel, error) {
+	return NewAccessLevel(
+		json.PropToInt(props, "ID"),
+		json.PropToStr(props, "Name"),
+	)
 }

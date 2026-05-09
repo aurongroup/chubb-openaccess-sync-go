@@ -3,7 +3,7 @@ package lenel
 import (
 	"log"
 	"openaccess-sync/client"
-	"openaccess-sync/data/model/lenel"
+	"openaccess-sync/data/model"
 )
 
 // DataCache holds all data fetched from the OpenAccess API.
@@ -11,76 +11,76 @@ type DataCache struct {
 	client *client.Client
 
 	// indexed maps for O(1) lookup
-	accessLevels map[int]*lenel.AccessLevel
-	badges       map[int]*lenel.Badge
-	badgeByKey   map[int]*lenel.Badge
-	statuses     map[int]*lenel.BadgeStatus
-	badgeTypes   map[int]*lenel.BadgeType
-	cardholders  map[int]*lenel.Cardholder
+	accessLevels map[int]*model.AccessLevel
+	badges       map[int]*model.Badge
+	badgeByKey   map[int]*model.Badge
+	statuses     map[int]*model.BadgeStatus
+	badgeTypes   map[int]*model.BadgeType
+	cardholders  map[int]*model.Cardholder
 
 	// ordered slices for iteration (matches Java insertion order)
-	accessLevelList []*lenel.AccessLevel
-	badgeList       []*lenel.Badge
-	cardholderList  []*lenel.Cardholder
-	badgeStatusList []*lenel.BadgeStatus
-	badgeTypeList   []*lenel.BadgeType
-	assignments     []*lenel.AccessLevelAssignment
+	accessLevelList []*model.AccessLevel
+	badgeList       []*model.Badge
+	cardholderList  []*model.Cardholder
+	badgeStatusList []*model.BadgeStatus
+	badgeTypeList   []*model.BadgeType
+	assignments     []*model.AccessLevelAssignment
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.
 func NewDataCache(client *client.Client) *DataCache {
 	return &DataCache{
 		client:       client,
-		accessLevels: make(map[int]*lenel.AccessLevel),
-		badges:       make(map[int]*lenel.Badge),
-		badgeByKey:   make(map[int]*lenel.Badge),
-		statuses:     make(map[int]*lenel.BadgeStatus),
-		badgeTypes:   make(map[int]*lenel.BadgeType),
-		cardholders:  make(map[int]*lenel.Cardholder),
+		accessLevels: make(map[int]*model.AccessLevel),
+		badges:       make(map[int]*model.Badge),
+		badgeByKey:   make(map[int]*model.Badge),
+		statuses:     make(map[int]*model.BadgeStatus),
+		badgeTypes:   make(map[int]*model.BadgeType),
+		cardholders:  make(map[int]*model.Cardholder),
 	}
 }
 
-func (c *DataCache) GetAccessLevel(id int) *lenel.AccessLevel {
+func (c *DataCache) GetAccessLevel(id int) *model.AccessLevel {
 	return c.accessLevels[id]
 }
 
-func (c *DataCache) GetAccessLevels() []*lenel.AccessLevel {
+func (c *DataCache) GetAccessLevels() []*model.AccessLevel {
 	return c.accessLevelList
 }
 
-func (c *DataCache) GetBadge(id int) *lenel.Badge {
+func (c *DataCache) GetBadge(id int) *model.Badge {
 	return c.badges[id]
 }
 
-func (c *DataCache) GetBadges() []*lenel.Badge {
+func (c *DataCache) GetBadges() []*model.Badge {
 	return c.badgeList
 }
 
-func (c *DataCache) GetBadgeByKey(key int) *lenel.Badge {
+func (c *DataCache) GetBadgeByKey(key int) *model.Badge {
 	return c.badgeByKey[key]
 }
 
-func (c *DataCache) GetBadgeStatus(id int) *lenel.BadgeStatus {
+func (c *DataCache) GetBadgeStatus(id int) *model.BadgeStatus {
 	return c.statuses[id]
 }
 
-func (c *DataCache) GetBadgeStatuses() []*lenel.BadgeStatus {
+func (c *DataCache) GetBadgeStatuses() []*model.BadgeStatus {
 	return c.badgeStatusList
 }
 
-func (c *DataCache) GetBadgeType(id int) *lenel.BadgeType {
+func (c *DataCache) GetBadgeType(id int) *model.BadgeType {
 	return c.badgeTypes[id]
 }
 
-func (c *DataCache) GetBadgeTypes() []*lenel.BadgeType {
+func (c *DataCache) GetBadgeTypes() []*model.BadgeType {
 	return c.badgeTypeList
 }
 
-func (c *DataCache) GetCardholder(id int) *lenel.Cardholder {
+func (c *DataCache) GetCardholder(id int) *model.Cardholder {
 	return c.cardholders[id]
 }
 
-func (c *DataCache) GetCardholders() []*lenel.Cardholder {
+func (c *DataCache) GetCardholders() []*model.Cardholder {
 	return c.cardholderList
 }
 
@@ -122,7 +122,7 @@ func (c *DataCache) fillAccessLevels() error {
 	}
 
 	for _, props := range items {
-		al, err := lenel.NewAccessLevel(props)
+		al, err := model.NewAccessLevelFromJSON(props)
 		if err != nil {
 			log.Printf("skipping Lnl_AccessLevel: %v", err)
 			continue
@@ -143,7 +143,7 @@ func (c *DataCache) fillBadgeStatuses() error {
 	}
 
 	for _, props := range items {
-		s, err := lenel.NewBadgeStatus(props)
+		s, err := model.NewBadgeStatusFromJSON(props)
 		if err != nil {
 			log.Printf("skipping Lnl_BadgeStatus: %v", err)
 			continue
@@ -164,7 +164,7 @@ func (c *DataCache) fillBadgeTypes() error {
 	}
 
 	for _, props := range items {
-		t, err := lenel.NewBadgeType(props)
+		t, err := model.NewBadgeTypeFromJSON(props)
 		if err != nil {
 			log.Printf("skipping Lnl_BadgeType: %v", err)
 			continue
@@ -185,7 +185,7 @@ func (c *DataCache) fillCardholders() error {
 	}
 
 	for _, props := range items {
-		ch, err := lenel.NewCardholder(props)
+		ch, err := model.NewCardholderFromJSON(props)
 		if err != nil {
 			log.Printf("skipping Lnl_Cardholder: %v", err)
 			continue
@@ -206,14 +206,14 @@ func (c *DataCache) fillBadges() error {
 	}
 
 	for _, props := range items {
-		b, err := lenel.NewBadge(props, c)
+		b, err := model.NewBadgeFromJSON(props, c)
 		if err != nil {
 			log.Printf("skipping Lnl_Badge: %v", err)
 			continue
 		}
 
 		c.badges[b.ID] = b
-		c.badgeByKey[b.BadgeKey] = b
+		c.badgeByKey[b.Key] = b
 		c.badgeList = append(c.badgeList, b)
 	}
 	log.Printf("Retrieved %d Lnl_Badge records", len(c.badgeList))
@@ -221,28 +221,29 @@ func (c *DataCache) fillBadges() error {
 }
 
 func (c *DataCache) fillAssignments() error {
-	items, err := c.client.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
-	if err != nil {
-		return err
-	}
-
-	for _, props := range items {
-		a, err := lenel.NewAccessLevelAssignment(props, c)
-		if err != nil {
-			log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
-			continue
-		}
-
-		c.assignments = append(c.assignments, a)
-	}
-	log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
+	// TODO
+	//items, err := c.client.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//for _, props := range items {
+	//	a, err := model.NewAccessLevelAssignment(props, c)
+	//	if err != nil {
+	//		log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
+	//		continue
+	//	}
+	//
+	//	c.assignments = append(c.assignments, a)
+	//}
+	//log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
 	return nil
 }
 
 // GetAccessLevelsByBadge returns a map from badge ID to its assigned access levels,
 // in assignment order.
-func (c *DataCache) GetAccessLevelsByBadge() map[int][]*lenel.AccessLevel {
-	m := make(map[int][]*lenel.AccessLevel)
+func (c *DataCache) GetAccessLevelsByBadge() map[int][]*model.AccessLevel {
+	m := make(map[int][]*model.AccessLevel)
 
 	for _, a := range c.assignments {
 		m[a.Badge.ID] = append(m[a.Badge.ID], a.AccessLevel)

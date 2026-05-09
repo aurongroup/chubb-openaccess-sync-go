@@ -6,7 +6,7 @@ import (
 	"log"
 	client2 "openaccess-sync/client"
 	"openaccess-sync/config"
-	"openaccess-sync/data/cache/lenel"
+	"openaccess-sync/data/lenel"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -77,11 +77,12 @@ func main() {
 			len(result.Delete),
 		)
 
-		if cfg.Verbose {
-			for _, r := range result.All {
-				log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
-			}
-		}
+		// TODO
+		//if cfg.Verbose {
+		//	for _, r := range result.All {
+		//		log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
+		//	}
+		//}
 
 	case config.ModeCleanup:
 		log.Println("cleanup not yet implemented")

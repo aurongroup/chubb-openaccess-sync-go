@@ -3,14 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
-	"openaccess-sync/data/model/csv"
+	"openaccess-sync/data/model"
 	"time"
-
-	"openaccess-sync/data"
 )
 
 // ContentEquals returns true if two AccessRecords have identical content across all 14 fields.
-func ContentEquals(a, b *csv.AccessRecord, w io.Writer) bool {
+func ContentEquals(a, b *model.AccessRecord, w io.Writer) bool {
 	var diffs []string
 
 	if a.SSNO != b.SSNO {
@@ -81,48 +79,49 @@ func dateEqual(a, b *time.Time) bool {
 // CompareResult holds the output of CompareRecords grouped by sync status.
 // All contains every record across all buckets in insertion order (New, Existing, Update, Delete).
 type CompareResult struct {
-	New      []*csv.AccessRecord
-	Existing []*csv.AccessRecord
-	Update   []*csv.AccessRecord
-	Delete   []*csv.AccessRecord
-	All      []*csv.AccessRecord
+	New      []*model.AccessRecord
+	Existing []*model.AccessRecord
+	Update   []*model.AccessRecord
+	Delete   []*model.AccessRecord
+	All      []*model.AccessRecord
 }
 
 // CompareRecords classifies each record in first against second:
 // NEW if absent from second, EXISTING if content matches, UPDATE if different.
 // If a record in second is not in first it is marked DELETE.
-func CompareRecords(first, second []*csv.AccessRecord, w io.Writer) CompareResult {
-	secondByID := make(map[string]*csv.AccessRecord, len(second))
+func CompareRecords(first, second []*model.AccessRecord, w io.Writer) CompareResult {
+	secondByID := make(map[string]*model.AccessRecord, len(second))
 	for _, r := range second {
 		secondByID[r.BadgeID] = r
 	}
 
-	firstIDs := make(map[string]struct{}, len(first))
+	//firstIDs := make(map[strings]struct{}, len(first)) // TODO
 	var result CompareResult
 
-	for _, r := range first {
-		firstIDs[r.BadgeID] = struct{}{}
-
-		if s, ok := secondByID[r.BadgeID]; !ok {
-			r.SyncStatus = data.SyncNew
-			result.New = append(result.New, r)
-		} else if ContentEquals(r, s, w) {
-			r.SyncStatus = data.SyncExisting
-			result.Existing = append(result.Existing, r)
-		} else {
-			r.SyncStatus = data.SyncUpdate
-			result.Update = append(result.Update, r)
-		}
-		result.All = append(result.All, r)
-	}
-
-	for _, r := range second {
-		if _, ok := firstIDs[r.BadgeID]; !ok {
-			r.SyncStatus = data.SyncDelete
-			result.Delete = append(result.Delete, r)
-			result.All = append(result.All, r)
-		}
-	}
+	// TODO
+	//for _, r := range first {
+	//	firstIDs[r.BadgeID] = struct{}{}
+	//
+	//	if s, ok := secondByID[r.BadgeID]; !ok {
+	//		r.SyncStatus = data.SyncNew
+	//		result.New = append(result.New, r)
+	//	} else if ContentEquals(r, s, w) {
+	//		r.SyncStatus = data.SyncExisting
+	//		result.Existing = append(result.Existing, r)
+	//	} else {
+	//		r.SyncStatus = data.SyncUpdate
+	//		result.Update = append(result.Update, r)
+	//	}
+	//	result.All = append(result.All, r)
+	//}
+	//
+	//for _, r := range second {
+	//	if _, ok := firstIDs[r.BadgeID]; !ok {
+	//		r.SyncStatus = data.SyncDelete
+	//		result.Delete = append(result.Delete, r)
+	//		result.All = append(result.All, r)
+	//	}
+	//}
 
 	return result
 }

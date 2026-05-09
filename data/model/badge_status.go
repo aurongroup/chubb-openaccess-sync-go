@@ -1,4 +1,4 @@
-package lenel
+package model
 
 import (
 	"errors"
@@ -16,16 +16,25 @@ type BadgeStatus struct {
 	Name string
 }
 
-func NewBadgeStatus(props map[string]any) (*BadgeStatus, error) {
-	id := json.PropToInt(props, "ID")
+func NewBadgeStatus(id int, name string) (*BadgeStatus, error) {
 	if id == 0 {
 		return nil, ErrBadgeStatusMissingID
 	}
 
-	name := json.PropToStr(props, "Name")
 	if name == "" {
 		return nil, ErrBadgeStatusMissingName
 	}
 
-	return &BadgeStatus{ID: id, Name: name}, nil
+	return &BadgeStatus{
+			ID:   id,
+			Name: name,
+		},
+		nil
+}
+
+func NewBadgeStatusFromJSON(props map[string]any) (*BadgeStatus, error) {
+	return NewBadgeStatus(
+		json.PropToInt(props, "ID"),
+		json.PropToStr(props, "Name"),
+	)
 }

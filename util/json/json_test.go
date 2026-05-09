@@ -64,6 +64,6 @@ func TestPropStr_shouldReturnString(t *testing.T) {
 func TestPropStr_shouldReturnEmptyForMissingKey(t *testing.T) {
 	m := map[string]any{}
 	if got := propStr(m, "Name"); got != "" {
-		t.Errorf("expected empty string, got %q", got)
+		t.Errorf("expected empty strings, got %q", got)
 	}
 }

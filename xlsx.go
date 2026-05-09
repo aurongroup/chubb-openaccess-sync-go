@@ -1,8 +1,8 @@
 package main
 
 import (
-	lenel2 "openaccess-sync/data/cache/lenel"
-	"openaccess-sync/data/model/lenel"
+	lenel2 "openaccess-sync/data/lenel"
+	"openaccess-sync/data/model"
 	"openaccess-sync/util/date"
 
 	"github.com/xuri/excelize/v2"
@@ -87,7 +87,7 @@ func writeBadgesSheet(f *excelize.File, cache *lenel2.DataCache, style int) erro
 		row := i + 2
 		vals := []any{
 			badge.ID,
-			badge.BadgeKey,
+			badge.Key,
 			date.Format(badge.Activate),
 			date.Format(badge.Deactivate),
 			badgeStatusName(badge),
@@ -210,7 +210,7 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *lenel2.DataCache, style in
 	return nil
 }
 
-func badgeStatusName(b *lenel.Badge) string {
+func badgeStatusName(b *model.Badge) string {
 	if b.Status != nil {
 		return b.Status.Name
 	}
@@ -218,7 +218,7 @@ func badgeStatusName(b *lenel.Badge) string {
 	return ""
 }
 
-func badgeTypeName(b *lenel.Badge) string {
+func badgeTypeName(b *model.Badge) string {
 	if b.Type != nil {
 		return b.Type.Name
 	}
@@ -226,7 +226,7 @@ func badgeTypeName(b *lenel.Badge) string {
 	return ""
 }
 
-func cardholderSSNO(b *lenel.Badge) string {
+func cardholderSSNO(b *model.Badge) string {
 	if b.Cardholder != nil {
 		return b.Cardholder.SSNO
 	}
