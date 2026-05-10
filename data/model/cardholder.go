@@ -34,8 +34,8 @@ func NewCardholder(id int, ssno, firstName, lastName string) (*Cardholder, error
 func NewCardholderFromJSON(props map[string]any) (*Cardholder, error) {
 	return NewCardholder(
 		json.PropToInt(props, "ID"),
+		json.PropToStr(props, "SSNO"),
 		json.PropToStr(props, "FIRSTNAME"),
 		json.PropToStr(props, "LASTNAME"),
-		json.PropToStr(props, "SSNO"),
 	)
 }

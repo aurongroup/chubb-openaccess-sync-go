@@ -21,6 +21,8 @@ var (
 type IDCache interface {
 	GetAccessLevel(int) *AccessLevel
 	GetBadge(int) *Badge
+	GetBadgeByKey(int) *Badge
+	GetBadges() []*Badge
 	GetBadgeStatus(int) *BadgeStatus
 	GetBadgeType(int) *BadgeType
 	GetCardholder(int) *Cardholder
@@ -29,7 +31,7 @@ type IDCache interface {
 
 type KeyCache interface {
 	GetAccessLevelByKey(string) *AccessLevel
-	GetBadgeByKey(string) *Badge
+	GetBadgeByKey(int) *Badge
 	GetBadgeStatusByKey(string) *BadgeStatus
 	GetBadgeTypeByKey(string) *BadgeType
 	GetCardholderByKey(string) *Cardholder
@@ -64,7 +66,7 @@ func NewBadge(id, key int, activate, deactivate *time.Time, badgeStatus *BadgeSt
 	}
 	b.Status = badgeStatus
 
-	if b.Type == nil {
+	if badgeType == nil {
 		return nil, ErrBadgeUnresolvedType
 	}
 	b.Type = badgeType
@@ -151,6 +153,38 @@ func NewBadgeFromKeys(badgeID string, activate, deactivate *time.Time, statusKey
 	}
 
 	return NewBadge(0, key, activate, deactivate, badgeStatus, badgeType, cardholder)
+}
+
+// ToAccessRecord builds an AccessRecord from a Badge and its access levels.
+func (badge *Badge) ToAccessRecord(accessLevels []*AccessLevel) (*AccessRecord, error) {
+	var ssno, first, last, status, badgeType string
+
+	if badge.Cardholder != nil {
+		ssno = badge.Cardholder.SSNO
+		first = badge.Cardholder.FirstName
+		last = badge.Cardholder.LastName
+	}
+
+	lvl := [6]string{}
+	for i := 0; i < len(accessLevels) && i < 6; i++ {
+		lvl[i] = accessLevels[i].Name
+	}
+
+	if badge.Status != nil {
+		status = badge.Status.Name
+	}
+
+	if badge.Type != nil {
+		badgeType = badge.Type.Name
+	}
+
+	return NewAccessRecord(
+		ssno, first, last,
+		lvl[0], lvl[1], lvl[2], lvl[3], lvl[4], lvl[5],
+		fmt.Sprintf("%d", badge.ID),
+		badge.Activate, badge.Deactivate,
+		status, badgeType,
+	)
 }
 
 // ToJSON returns the API wire format map for a b.

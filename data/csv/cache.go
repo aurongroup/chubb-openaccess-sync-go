@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"log"
 	"openaccess-sync/data/model"
 )
 
@@ -10,26 +11,25 @@ type AccessRecordCache struct {
 	recordsByCardholderKey map[string][]*model.AccessRecord
 }
 
-func BuildAccessRecordCache(c *DataCache) *AccessRecordCache {
+func BuildAccessRecordCache(c model.IDCache) *AccessRecordCache {
 	arc := AccessRecordCache{
 		recordsByCardholderKey: make(map[string][]*model.AccessRecord),
 	}
 
 	// TODO
-	//levelsByBadgeID := c.GetAccessLevelsByBadge()
-	//for _, badge := range c.GetBadges() {
-	//	r, err := badge.ToAccessRecord(levelsByBadgeID[badge.ID])
-	//	if err != nil {
-	//		log.Printf("skipping access record for badge %d: %v", badge.ID, err)
-	//		continue
-	//	}
-	//
-	//	arc.records = append(arc.records, r)
-	//
-	//	if r.CardholderKey != "" {
-	//		arc.recordsByCardholderKey[r.CardholderKey] = append(arc.recordsByCardholderKey[r.CardholderKey], r)
-	//	}
-	//}
+	for _, badge := range c.GetBadges() {
+		r, err := badge.ToAccessRecord(c.GetAccessLevelsByBadge(badge.ID))
+		if err != nil {
+			log.Printf("skipping access record for badge %d: %v", badge.ID, err)
+			continue
+		}
+
+		arc.records = append(arc.records, r)
+
+		if r.CardholderKey != "" {
+			arc.recordsByCardholderKey[r.CardholderKey] = append(arc.recordsByCardholderKey[r.CardholderKey], r)
+		}
+	}
 
 	return &arc
 }

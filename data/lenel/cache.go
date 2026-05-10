@@ -236,6 +236,11 @@ func (c *DataCache) fillAssignments() error {
 		}
 
 		c.assignments = append(c.assignments, a)
+
+		if _, ok := c.accessLevelsByBadge[a.Badge.ID]; !ok {
+			c.accessLevelsByBadge[a.Badge.ID] = make([]*model.AccessLevel, 0)
+		}
+		c.accessLevelsByBadge[a.Badge.ID] = append(c.accessLevelsByBadge[a.Badge.ID], a.AccessLevel)
 	}
 	log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
 	return nil

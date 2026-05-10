@@ -6,6 +6,7 @@ import (
 	"log"
 	client2 "openaccess-sync/client"
 	"openaccess-sync/config"
+	"openaccess-sync/data/csv"
 	"openaccess-sync/data/lenel"
 	"os"
 
@@ -42,7 +43,7 @@ func main() {
 
 	switch cfg.Mode {
 	case config.ModeExport:
-		arc := cache.BuildAccessRecordCache(cache)
+		arc := csv.BuildAccessRecordCache(cache)
 
 		err = PrintCSVReport(arc.Records(), cfg.File)
 		if err != nil {
@@ -50,7 +51,7 @@ func main() {
 		}
 
 	case config.ModeSync:
-		arc := cache.BuildAccessRecordCache(cache)
+		arc := csv.BuildAccessRecordCache(cache)
 
 		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
@@ -77,12 +78,12 @@ func main() {
 			len(result.Delete),
 		)
 
-		// TODO
-		//if cfg.Verbose {
-		//	for _, r := range result.All {
-		//		log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID)
-		//	}
-		//}
+		if cfg.Verbose {
+			for _, r := range result.All {
+				//log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID) // TODO
+				log.Printf("ssno=%s badgeId=%s", r.SSNO, r.BadgeID)
+			}
+		}
 
 	case config.ModeCleanup:
 		log.Println("cleanup not yet implemented")

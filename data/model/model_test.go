@@ -1,42 +1,35 @@
 package model
 
 import (
-	"openaccess-sync/data"
 	"testing"
 	"time"
 )
 
-// testCache is a minimal Cache implementation for model tests.
-type testCache struct {
+// testIDCache implements IDCache for model tests.
+type testIDCache struct {
 	statuses     map[int]*BadgeStatus
 	badgeTypes   map[int]*BadgeType
 	cardholders  map[int]*Cardholder
 	accessLevels map[int]*AccessLevel
-	badgeByKey   map[int]*Badge
+	badges       map[int]*Badge
 }
 
-func (c *testCache) GetBadgeStatus(id int) *BadgeStatus { return c.statuses[id] }
-func (c *testCache) GetBadgeType(id int) *BadgeType     { return c.badgeTypes[id] }
-func (c *testCache) GetCardholder(id int) *Cardholder   { return c.cardholders[id] }
-func (c *testCache) GetAccessLevel(id int) *AccessLevel { return c.accessLevels[id] }
-func (c *testCache) GetBadgeByKey(key int) *Badge       { return c.badgeByKey[key] }
+func (c *testIDCache) GetBadgeStatus(id int) *BadgeStatus           { return c.statuses[id] }
+func (c *testIDCache) GetBadgeType(id int) *BadgeType               { return c.badgeTypes[id] }
+func (c *testIDCache) GetCardholder(id int) *Cardholder             { return c.cardholders[id] }
+func (c *testIDCache) GetAccessLevel(id int) *AccessLevel           { return c.accessLevels[id] }
+func (c *testIDCache) GetBadge(id int) *Badge                       { return c.badges[id] }
+func (c *testIDCache) GetBadges() []*Badge                          { return nil }
+func (c *testIDCache) GetAccessLevelsByBadge(int) []*AccessLevel    { return nil }
 
-func newTestCache() *testCache {
-	return &testCache{
+func newTestIDCache() *testIDCache {
+	return &testIDCache{
 		statuses:     map[int]*BadgeStatus{1: {ID: 1, Name: "Active"}},
 		badgeTypes:   map[int]*BadgeType{1: {ID: 1, Name: "Standard"}},
 		cardholders:  map[int]*Cardholder{},
 		accessLevels: map[int]*AccessLevel{},
-		badgeByKey:   map[int]*Badge{},
+		badges:       map[int]*Badge{},
 	}
-}
-
-func newAssignmentCache() *testCache {
-	c := newTestCache()
-	c.accessLevels[10] = &AccessLevel{ID: 10, Name: "Main Entrance"}
-	b := &Badge{ID: 20, BadgeKey: 200, Status: c.statuses[1], Type: c.badgeTypes[1]}
-	c.badgeByKey[200] = b
-	return c
 }
 
 func assertStr(t *testing.T, field, want, got string) {
@@ -52,15 +45,191 @@ func assertDate(t *testing.T, field string, want time.Time, got *time.Time) {
 		t.Errorf("%s: expected %v, got nil", field, want)
 		return
 	}
-
 	if !got.Equal(want) {
 		t.Errorf("%s: expected %v, got %v", field, want, *got)
 	}
 }
 
-// ---- LnlBadge tests ----
+// ---- NewAccessLevel ----
 
-func TestLnlBadge_fromProps_shouldParseId(t *testing.T) {
+func TestNewAccessLevel_shouldParseIdAndName(t *testing.T) {
+	al, err := NewAccessLevel(5, "Main Entrance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if al.ID != 5 {
+		t.Errorf("ID: expected 5, got %d", al.ID)
+	}
+	if al.Name != "Main Entrance" {
+		t.Errorf("Name: expected %q, got %q", "Main Entrance", al.Name)
+	}
+}
+
+func TestNewAccessLevel_shouldErrorWhenIDMissing(t *testing.T) {
+	_, err := NewAccessLevel(0, "Main Entrance")
+	if err != ErrAccessLevelMissingID {
+		t.Errorf("expected ErrAccessLevelMissingID, got %v", err)
+	}
+}
+
+func TestNewAccessLevel_shouldErrorWhenNameMissing(t *testing.T) {
+	_, err := NewAccessLevel(1, "")
+	if err != ErrAccessLevelMissingName {
+		t.Errorf("expected ErrAccessLevelMissingName, got %v", err)
+	}
+}
+
+// ---- NewBadgeStatus ----
+
+func TestNewBadgeStatus_shouldParseIdAndName(t *testing.T) {
+	s, err := NewBadgeStatus(3, "Active")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.ID != 3 {
+		t.Errorf("ID: expected 3, got %d", s.ID)
+	}
+	if s.Name != "Active" {
+		t.Errorf("Name: expected %q, got %q", "Active", s.Name)
+	}
+}
+
+func TestNewBadgeStatus_shouldErrorWhenIDMissing(t *testing.T) {
+	_, err := NewBadgeStatus(0, "Active")
+	if err != ErrBadgeStatusMissingID {
+		t.Errorf("expected ErrBadgeStatusMissingID, got %v", err)
+	}
+}
+
+func TestNewBadgeStatus_shouldErrorWhenNameMissing(t *testing.T) {
+	_, err := NewBadgeStatus(1, "")
+	if err != ErrBadgeStatusMissingName {
+		t.Errorf("expected ErrBadgeStatusMissingName, got %v", err)
+	}
+}
+
+// ---- NewBadgeType ----
+
+func TestNewBadgeType_shouldParseIdAndName(t *testing.T) {
+	bt, err := NewBadgeType(2, "Employee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bt.ID != 2 {
+		t.Errorf("ID: expected 2, got %d", bt.ID)
+	}
+	if bt.Name != "Employee" {
+		t.Errorf("Name: expected %q, got %q", "Employee", bt.Name)
+	}
+}
+
+func TestNewBadgeType_shouldErrorWhenIDMissing(t *testing.T) {
+	_, err := NewBadgeType(0, "Employee")
+	if err != ErrBadgeTypeMissingID {
+		t.Errorf("expected ErrBadgeTypeMissingID, got %v", err)
+	}
+}
+
+func TestNewBadgeType_shouldErrorWhenNameMissing(t *testing.T) {
+	_, err := NewBadgeType(1, "")
+	if err != ErrBadgeTypeMissingName {
+		t.Errorf("expected ErrBadgeTypeMissingName, got %v", err)
+	}
+}
+
+// ---- NewCardholder ----
+
+func TestNewCardholder_shouldSetAllFields(t *testing.T) {
+	ch, err := NewCardholder(10, "1234", "Bob", "Brown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ch.ID != 10 {
+		t.Errorf("ID: expected 10, got %d", ch.ID)
+	}
+	if ch.SSNO != "1234" {
+		t.Errorf("SSNO: expected %q, got %q", "1234", ch.SSNO)
+	}
+	if ch.FirstName != "Bob" {
+		t.Errorf("FirstName: expected %q, got %q", "Bob", ch.FirstName)
+	}
+	if ch.LastName != "Brown" {
+		t.Errorf("LastName: expected %q, got %q", "Brown", ch.LastName)
+	}
+}
+
+func TestNewCardholder_shouldAllowZeroIDAndEmptySsno(t *testing.T) {
+	ch, err := NewCardholder(0, "", "Jane", "Doe")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ch.ID != 0 {
+		t.Errorf("ID: expected 0, got %d", ch.ID)
+	}
+	if ch.SSNO != "" {
+		t.Errorf("SSNO: expected empty, got %q", ch.SSNO)
+	}
+}
+
+func TestNewCardholder_shouldErrorWhenLastNameMissing(t *testing.T) {
+	_, err := NewCardholder(5, "9999", "Alice", "")
+	if err != ErrCardholderMissingLastName {
+		t.Errorf("expected ErrCardholderMissingLastName, got %v", err)
+	}
+}
+
+// ---- NewCardholderFromJSON ----
+
+func TestNewCardholderFromJSON_shouldParseAllFields(t *testing.T) {
+	ch, err := NewCardholderFromJSON(map[string]any{
+		"ID":        float64(10),
+		"SSNO":      "1234",
+		"FIRSTNAME": "Bob",
+		"LASTNAME":  "Brown",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ch.ID != 10 {
+		t.Errorf("ID: expected 10, got %d", ch.ID)
+	}
+	if ch.SSNO != "1234" {
+		t.Errorf("SSNO: expected %q, got %q", "1234", ch.SSNO)
+	}
+	if ch.FirstName != "Bob" {
+		t.Errorf("FirstName: expected %q, got %q", "Bob", ch.FirstName)
+	}
+	if ch.LastName != "Brown" {
+		t.Errorf("LastName: expected %q, got %q", "Brown", ch.LastName)
+	}
+}
+
+func TestNewCardholderFromJSON_shouldTolerateMissingOptionalFields(t *testing.T) {
+	ch, err := NewCardholderFromJSON(map[string]any{"LASTNAME": "Smith"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ch.ID != 0 {
+		t.Errorf("ID: expected 0, got %d", ch.ID)
+	}
+	if ch.SSNO != "" {
+		t.Errorf("SSNO: expected empty, got %q", ch.SSNO)
+	}
+	if ch.FirstName != "" {
+		t.Errorf("FirstName: expected empty, got %q", ch.FirstName)
+	}
+}
+
+func TestNewCardholderFromJSON_shouldErrorWhenLastNameMissing(t *testing.T) {
+	_, err := NewCardholderFromJSON(map[string]any{"ID": float64(5), "SSNO": "9999"})
+	if err != ErrCardholderMissingLastName {
+		t.Errorf("expected ErrCardholderMissingLastName, got %v", err)
+	}
+}
+
+// ---- NewBadgeFromJSON ----
+
+func TestNewBadgeFromJSON_shouldParseId(t *testing.T) {
 	props := map[string]any{
 		"ID":       float64(42),
 		"BADGEKEY": float64(1),
@@ -68,7 +237,7 @@ func TestLnlBadge_fromProps_shouldParseId(t *testing.T) {
 		"TYPE":     float64(1),
 	}
 
-	badge, err := NewBadge(props, newTestCache())
+	badge, err := NewBadgeFromJSON(props, newTestIDCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,18 +247,48 @@ func TestLnlBadge_fromProps_shouldParseId(t *testing.T) {
 	}
 }
 
-func TestLnlBadge_fromProps_shouldErrorWhenIdAbsent(t *testing.T) {
-	props := map[string]any{
-		"BADGEKEY": float64(1),
+func TestNewBadgeFromJSON_shouldErrorWhenCacheNil(t *testing.T) {
+	_, err := NewBadgeFromJSON(map[string]any{"ID": float64(1), "BADGEKEY": float64(1)}, nil)
+	if err != ErrBadgeNilCache {
+		t.Errorf("expected ErrBadgeNilCache, got %v", err)
 	}
+}
 
-	_, err := NewBadge(props, newTestCache())
-	if err != data.ErrBadgeMissingID {
+func TestNewBadgeFromJSON_shouldErrorWhenIdAbsent(t *testing.T) {
+	props := map[string]any{"BADGEKEY": float64(1)}
+	_, err := NewBadgeFromJSON(props, newTestIDCache())
+	if err != ErrBadgeMissingID {
 		t.Errorf("expected ErrBadgeMissingID, got %v", err)
 	}
 }
 
-func TestLnlBadge_toJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
+func TestNewBadgeFromJSON_shouldErrorWhenBadgeKeyAbsent(t *testing.T) {
+	props := map[string]any{"ID": float64(1)}
+	_, err := NewBadgeFromJSON(props, newTestIDCache())
+	if err != ErrBadgeMissingBadgeKey {
+		t.Errorf("expected ErrBadgeMissingBadgeKey, got %v", err)
+	}
+}
+
+func TestNewBadgeFromJSON_shouldErrorWhenStatusNotInCache(t *testing.T) {
+	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(999), "TYPE": float64(1)}
+	_, err := NewBadgeFromJSON(props, newTestIDCache())
+	if err != ErrBadgeUnresolvedStatus {
+		t.Errorf("expected ErrBadgeUnresolvedStatus, got %v", err)
+	}
+}
+
+func TestNewBadgeFromJSON_shouldErrorWhenTypeNotInCache(t *testing.T) {
+	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(1), "TYPE": float64(999)}
+	_, err := NewBadgeFromJSON(props, newTestIDCache())
+	if err != ErrBadgeUnresolvedType {
+		t.Errorf("expected ErrBadgeUnresolvedType, got %v", err)
+	}
+}
+
+// ---- Badge.ToJSON ----
+
+func TestBadge_ToJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
 	props := map[string]any{
 		"ID":         float64(7),
 		"BADGEKEY":   float64(1001),
@@ -99,7 +298,7 @@ func TestLnlBadge_toJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
 		"DEACTIVATE": "2026-12-31",
 	}
 
-	badge, err := NewBadge(props, newTestCache())
+	badge, err := NewBadgeFromJSON(props, newTestIDCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +327,7 @@ func TestLnlBadge_toJSON_shouldCreateCorrectJsonStructure(t *testing.T) {
 	}
 }
 
-func TestLnlBadge_toJSON_shouldPutNilForAbsentDates(t *testing.T) {
+func TestBadge_ToJSON_shouldPutNilForAbsentDates(t *testing.T) {
 	props := map[string]any{
 		"ID":       float64(3),
 		"BADGEKEY": float64(42),
@@ -136,7 +335,7 @@ func TestLnlBadge_toJSON_shouldPutNilForAbsentDates(t *testing.T) {
 		"TYPE":     float64(1),
 	}
 
-	badge, err := NewBadge(props, newTestCache())
+	badge, err := NewBadgeFromJSON(props, newTestIDCache())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,263 +356,15 @@ func TestLnlBadge_toJSON_shouldPutNilForAbsentDates(t *testing.T) {
 	}
 }
 
-// ---- LnlAccessLevel tests ----
+// ---- Badge.ToAccessRecord ----
 
-func TestLnlAccessLevel_fromProps_shouldParseId(t *testing.T) {
-	props := map[string]any{
-		"ID":   float64(5),
-		"Name": "Main Entrance",
-	}
-
-	al, err := NewAccessLevel(props)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if al.ID != 5 {
-		t.Errorf("expected ID 5, got %d", al.ID)
-	}
-}
-
-func TestLnlAccessLevel_fromProps_shouldParseNameAndID(t *testing.T) {
-	props := map[string]any{
-		"ID":   float64(10),
-		"Name": "Conference Room",
-	}
-
-	al, err := NewAccessLevel(props)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if al.ID != 10 {
-		t.Errorf("expected ID 10, got %d", al.ID)
-	}
-
-	if al.Name != "Conference Room" {
-		t.Errorf("expected Name 'Conference Room', got %q", al.Name)
-	}
-}
-
-// ---- propDate / dateStr symmetry ----
-
-func TestPropDate_shouldParseISODate(t *testing.T) {
-	props := map[string]any{"ACTIVATE": "2018-09-12"}
-
-	d := data.propDate(props, "ACTIVATE")
-	if d == nil {
-		t.Fatal("expected non-nil date")
-	}
-
-	want := time.Date(2018, 9, 12, 0, 0, 0, 0, time.UTC)
-	if !d.Equal(want) {
-		t.Errorf("expected %v, got %v", want, *d)
-	}
-}
-
-func TestPropDate_shouldReturnNilForMissingKey(t *testing.T) {
-	props := map[string]any{}
-
-	d := data.propDate(props, "ACTIVATE")
-	if d != nil {
-		t.Errorf("expected nil, got %v", d)
-	}
-}
-
-// ---- NewLnlBadgeStatus ----
-
-func TestNewLnlBadgeStatus_shouldParseIdAndName(t *testing.T) {
-	s, err := NewBadgeStatus(map[string]any{"ID": float64(3), "Name": "Active"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s.ID != 3 {
-		t.Errorf("expected ID 3, got %d", s.ID)
-	}
-	if s.Name != "Active" {
-		t.Errorf("expected Name %q, got %q", "Active", s.Name)
-	}
-}
-
-func TestNewLnlBadgeStatus_shouldErrorWhenIdAbsent(t *testing.T) {
-	_, err := NewBadgeStatus(map[string]any{"Name": "Active"})
-	if err != data.ErrBadgeStatusMissingID {
-		t.Errorf("expected ErrBadgeStatusMissingID, got %v", err)
-	}
-}
-
-func TestNewLnlBadgeStatus_shouldErrorWhenNameAbsent(t *testing.T) {
-	_, err := NewBadgeStatus(map[string]any{"ID": float64(1)})
-	if err != data.ErrBadgeStatusMissingName {
-		t.Errorf("expected ErrBadgeStatusMissingName, got %v", err)
-	}
-}
-
-// ---- NewLnlBadgeType ----
-
-func TestNewLnlBadgeType_shouldParseIdAndName(t *testing.T) {
-	bt, err := NewBadgeType(map[string]any{"ID": float64(2), "Name": "Employee"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bt.ID != 2 {
-		t.Errorf("expected ID 2, got %d", bt.ID)
-	}
-	if bt.Name != "Employee" {
-		t.Errorf("expected Name %q, got %q", "Employee", bt.Name)
-	}
-}
-
-func TestNewLnlBadgeType_shouldErrorWhenIdAbsent(t *testing.T) {
-	_, err := NewBadgeType(map[string]any{"Name": "Employee"})
-	if err != data.ErrBadgeTypeMissingID {
-		t.Errorf("expected ErrBadgeTypeMissingID, got %v", err)
-	}
-}
-
-func TestNewLnlBadgeType_shouldErrorWhenNameAbsent(t *testing.T) {
-	_, err := NewBadgeType(map[string]any{"ID": float64(2)})
-	if err != data.ErrBadgeTypeMissingName {
-		t.Errorf("expected ErrBadgeTypeMissingName, got %v", err)
-	}
-}
-
-// ---- NewLnlCardholder ----
-
-func TestNewLnlCardholder_shouldParseAllFields(t *testing.T) {
-	ch, err := NewCardholder(map[string]any{
-		"ID":        float64(10),
-		"SSNO":      "1234",
-		"FIRSTNAME": "Bob",
-		"LASTNAME":  "Brown",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ch.ID != 10 {
-		t.Errorf("expected ID 10, got %d", ch.ID)
-	}
-	if ch.SSNO != "1234" {
-		t.Errorf("expected SSNO %q, got %q", "1234", ch.SSNO)
-	}
-	if ch.FirstName != "Bob" {
-		t.Errorf("expected FirstName %q, got %q", "Bob", ch.FirstName)
-	}
-	if ch.LastName != "Brown" {
-		t.Errorf("expected LastName %q, got %q", "Brown", ch.LastName)
-	}
-}
-
-func TestNewLnlCardholder_shouldErrorWhenNeitherIdNorSsno(t *testing.T) {
-	_, err := NewCardholder(map[string]any{"LASTNAME": "Brown"})
-	if err != data.ErrCardholderMissingIdentifier {
-		t.Errorf("expected ErrCardholderMissingIdentifier, got %v", err)
-	}
-}
-
-func TestNewLnlCardholder_shouldAcceptIdWithoutSsno(t *testing.T) {
-	_, err := NewCardholder(map[string]any{"ID": float64(5), "LASTNAME": "Brown"})
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-}
-
-func TestNewLnlCardholder_shouldAcceptSsnoWithoutId(t *testing.T) {
-	_, err := NewCardholder(map[string]any{"SSNO": "9999", "LASTNAME": "Brown"})
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-}
-
-func TestNewLnlCardholder_shouldErrorWhenLastNameAbsent(t *testing.T) {
-	_, err := NewCardholder(map[string]any{"ID": float64(5)})
-	if err != data.ErrCardholderMissingLastName {
-		t.Errorf("expected ErrCardholderMissingLastName, got %v", err)
-	}
-}
-
-// ---- NewLnlAccessLevelAssignment ----
-
-func TestNewLnlAccessLevelAssignment_shouldResolveAccessLevelAndBadge(t *testing.T) {
-	props := map[string]any{"AccessLevelID": float64(10), "BadgeKey": float64(200)}
-	a, err := NewAccessLevelAssignment(props, newAssignmentCache())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if a.AccessLevel.ID != 10 {
-		t.Errorf("expected AccessLevel.ID 10, got %d", a.AccessLevel.ID)
-	}
-	if a.Badge.ID != 20 {
-		t.Errorf("expected Badge.ID 20, got %d", a.Badge.ID)
-	}
-}
-
-func TestNewLnlAccessLevelAssignment_shouldErrorWhenCacheNil(t *testing.T) {
-	_, err := NewAccessLevelAssignment(map[string]any{}, nil)
-	if err != data.ErrAssignmentNilCache {
-		t.Errorf("expected ErrAssignmentNilCache, got %v", err)
-	}
-}
-
-func TestNewLnlAccessLevelAssignment_shouldErrorWhenAccessLevelNotFound(t *testing.T) {
-	props := map[string]any{"AccessLevelID": float64(999), "BadgeKey": float64(200)}
-	_, err := NewAccessLevelAssignment(props, newAssignmentCache())
-	if err != data.ErrAssignmentUnresolvedAccessLevel {
-		t.Errorf("expected ErrAssignmentUnresolvedAccessLevel, got %v", err)
-	}
-}
-
-func TestNewLnlAccessLevelAssignment_shouldErrorWhenBadgeNotFound(t *testing.T) {
-	props := map[string]any{"AccessLevelID": float64(10), "BadgeKey": float64(999)}
-	_, err := NewAccessLevelAssignment(props, newAssignmentCache())
-	if err != data.ErrAssignmentUnresolvedBadge {
-		t.Errorf("expected ErrAssignmentUnresolvedBadge, got %v", err)
-	}
-}
-
-// ---- NewLnlBadge error cases ----
-
-func TestNewLnlBadge_shouldErrorWhenCacheNil(t *testing.T) {
-	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1)}
-	_, err := NewBadge(props, nil)
-	if err != data.ErrBadgeNilCache {
-		t.Errorf("expected ErrBadgeNilCache, got %v", err)
-	}
-}
-
-func TestNewLnlBadge_shouldErrorWhenBadgeKeyAbsent(t *testing.T) {
-	props := map[string]any{"ID": float64(1)}
-	_, err := NewBadge(props, newTestCache())
-	if err != data.ErrBadgeMissingBadgeKey {
-		t.Errorf("expected ErrBadgeMissingBadgeKey, got %v", err)
-	}
-}
-
-func TestNewLnlBadge_shouldErrorWhenStatusNotInCache(t *testing.T) {
-	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(999), "TYPE": float64(1)}
-	_, err := NewBadge(props, newTestCache())
-	if err != data.ErrBadgeUnresolvedStatus {
-		t.Errorf("expected ErrBadgeUnresolvedStatus, got %v", err)
-	}
-}
-
-func TestNewLnlBadge_shouldErrorWhenTypeNotInCache(t *testing.T) {
-	props := map[string]any{"ID": float64(1), "BADGEKEY": float64(1), "STATUS": float64(1), "TYPE": float64(999)}
-	_, err := NewBadge(props, newTestCache())
-	if err != data.ErrBadgeUnresolvedType {
-		t.Errorf("expected ErrBadgeUnresolvedType, got %v", err)
-	}
-}
-
-// ---- LnlBadge.ToAccessRecord ----
-
-func TestLnlBadge_ToAccessRecord_shouldMapAllFields(t *testing.T) {
-	c := newTestCache()
+func TestBadge_ToAccessRecord_shouldMapAllFields(t *testing.T) {
+	c := newTestIDCache()
 	activate := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	deactivate := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
 	badge := &Badge{
 		ID:         42,
-		BadgeKey:   100,
+		Key:        100,
 		Activate:   &activate,
 		Deactivate: &deactivate,
 		Status:     c.statuses[1],
@@ -440,20 +391,20 @@ func TestLnlBadge_ToAccessRecord_shouldMapAllFields(t *testing.T) {
 	assertDate(t, "Deactivate", deactivate, r.Deactivate)
 }
 
-func TestLnlBadge_ToAccessRecord_shouldErrorWhenCardholderNil(t *testing.T) {
-	c := newTestCache()
-	badge := &Badge{ID: 5, BadgeKey: 50, Status: c.statuses[1], Type: c.badgeTypes[1]}
+func TestBadge_ToAccessRecord_shouldErrorWhenCardholderNil(t *testing.T) {
+	c := newTestIDCache()
+	badge := &Badge{ID: 5, Key: 50, Status: c.statuses[1], Type: c.badgeTypes[1]}
 	_, err := badge.ToAccessRecord(nil)
-	if err != data.ErrAccessRecordMissingLast {
+	if err != ErrAccessRecordMissingLast {
 		t.Errorf("expected ErrAccessRecordMissingLast for nil cardholder, got %v", err)
 	}
 }
 
-func TestLnlBadge_ToAccessRecord_shouldCapAccessLevelsAtSix(t *testing.T) {
-	c := newTestCache()
+func TestBadge_ToAccessRecord_shouldCapAccessLevelsAtSix(t *testing.T) {
+	c := newTestIDCache()
 	badge := &Badge{
 		ID:         7,
-		BadgeKey:   70,
+		Key:        70,
 		Status:     c.statuses[1],
 		Type:       c.badgeTypes[1],
 		Cardholder: &Cardholder{ID: 1, LastName: "Smith"},
@@ -469,32 +420,70 @@ func TestLnlBadge_ToAccessRecord_shouldCapAccessLevelsAtSix(t *testing.T) {
 	assertStr(t, "AccLvl6", "Level", r.AccLvl6)
 }
 
+// ---- NewAccessLevelAssignment ----
+
+func TestNewAccessLevelAssignment_shouldLinkAccessLevelAndBadge(t *testing.T) {
+	al := &AccessLevel{ID: 10, Name: "Main Entrance"}
+	b := &Badge{ID: 20, Key: 200}
+	a, err := NewAccessLevelAssignment(al, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.AccessLevel.ID != 10 {
+		t.Errorf("expected AccessLevel.ID 10, got %d", a.AccessLevel.ID)
+	}
+	if a.Badge.ID != 20 {
+		t.Errorf("expected Badge.ID 20, got %d", a.Badge.ID)
+	}
+}
+
+func TestNewAccessLevelAssignment_shouldErrorWhenAccessLevelNil(t *testing.T) {
+	_, err := NewAccessLevelAssignment(nil, &Badge{ID: 20, Key: 200})
+	if err != ErrAssignmentNilAccessLevel {
+		t.Errorf("expected ErrAssignmentNilAccessLevel, got %v", err)
+	}
+}
+
+func TestNewAccessLevelAssignment_shouldErrorWhenBadgeNil(t *testing.T) {
+	_, err := NewAccessLevelAssignment(&AccessLevel{ID: 10, Name: "Main"}, nil)
+	if err != ErrAssignmentNilBadge {
+		t.Errorf("expected ErrAssignmentNilBadge, got %v", err)
+	}
+}
+
+func TestNewAccessLevelAssignmentFromJSON_shouldErrorWhenCacheNil(t *testing.T) {
+	_, err := NewAccessLevelAssignmentFromJSON(map[string]any{}, nil)
+	if err != ErrAssignmentNilCache {
+		t.Errorf("expected ErrAssignmentNilCache, got %v", err)
+	}
+}
+
 // ---- NewAccessRecord validation ----
 
 func TestNewAccessRecord_shouldErrorWhenLastMissing(t *testing.T) {
 	_, err := NewAccessRecord("", "", "", "", "", "", "", "", "", "100", nil, nil, "active", "Employee")
-	if err != data.ErrAccessRecordMissingLast {
+	if err != ErrAccessRecordMissingLast {
 		t.Errorf("expected ErrAccessRecordMissingLast, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenBadgeIDMissing(t *testing.T) {
 	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "", nil, nil, "active", "Employee")
-	if err != data.ErrAccessRecordMissingBadgeID {
+	if err != ErrAccessRecordMissingBadgeID {
 		t.Errorf("expected ErrAccessRecordMissingBadgeID, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenStatusMissing(t *testing.T) {
 	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "", "Employee")
-	if err != data.ErrAccessRecordMissingStatus {
+	if err != ErrAccessRecordMissingStatus {
 		t.Errorf("expected ErrAccessRecordMissingStatus, got %v", err)
 	}
 }
 
 func TestNewAccessRecord_shouldErrorWhenBadgeTypeMissing(t *testing.T) {
 	_, err := NewAccessRecord("", "", "Smith", "", "", "", "", "", "", "100", nil, nil, "active", "")
-	if err != data.ErrAccessRecordMissingBadgeType {
+	if err != ErrAccessRecordMissingBadgeType {
 		t.Errorf("expected ErrAccessRecordMissingBadgeType, got %v", err)
 	}
 }
@@ -531,6 +520,6 @@ func TestAccessRecord_ToRow_shouldFormatDatesCorrectly(t *testing.T) {
 		t.Errorf("activate: expected %q, got %q", "2024-03-05", row[10])
 	}
 	if row[11] != "" {
-		t.Errorf("deactivate: expected empty strings, got %q", row[11])
+		t.Errorf("deactivate: expected empty string, got %q", row[11])
 	}
 }

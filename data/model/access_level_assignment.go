@@ -51,17 +51,18 @@ func NewAccessLevelAssignmentFromJSON(props map[string]any, cache IDCache) (*Acc
 
 	return NewAccessLevelAssignment(
 		cache.GetAccessLevel(alID),
-		cache.GetBadge(badgeKey),
+		cache.GetBadgeByKey(badgeKey), // Lnl_AccessLevel instances use BadgeKey rather than ID as a link
 	)
 }
 
-func NewAccessLevelAssignmentFromKeys(alk, bk string, cache KeyCache) (*AccessLevelAssignment, error) {
-	if cache == nil {
-		return nil, ErrAssignmentNilCache
-	}
-
-	return NewAccessLevelAssignment(
-		cache.GetAccessLevelByKey(alk),
-		cache.GetBadgeByKey(bk),
-	)
-}
+// TODO
+//func NewAccessLevelAssignmentFromKeys(alk, bk string, cache KeyCache) (*AccessLevelAssignment, error) {
+//	if cache == nil {
+//		return nil, ErrAssignmentNilCache
+//	}
+//
+//	return NewAccessLevelAssignment(
+//		cache.GetAccessLevelByKey(alk),
+//		cache.GetBadgeByKey(bk),
+//	)
+//}
