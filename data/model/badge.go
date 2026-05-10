@@ -24,6 +24,7 @@ type IDCache interface {
 	GetBadgeStatus(int) *BadgeStatus
 	GetBadgeType(int) *BadgeType
 	GetCardholder(int) *Cardholder
+	GetAccessLevelsByBadge(int) []*AccessLevel
 }
 
 type KeyCache interface {

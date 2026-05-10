@@ -11,12 +11,13 @@ type DataCache struct {
 	client *client.Client
 
 	// indexed maps for O(1) lookup
-	accessLevels map[int]*model.AccessLevel
-	badges       map[int]*model.Badge
-	badgeByKey   map[int]*model.Badge
-	statuses     map[int]*model.BadgeStatus
-	badgeTypes   map[int]*model.BadgeType
-	cardholders  map[int]*model.Cardholder
+	accessLevels        map[int]*model.AccessLevel
+	accessLevelsByBadge map[int][]*model.AccessLevel
+	badges              map[int]*model.Badge
+	badgeByKey          map[int]*model.Badge
+	statuses            map[int]*model.BadgeStatus
+	badgeTypes          map[int]*model.BadgeType
+	cardholders         map[int]*model.Cardholder
 
 	// ordered slices for iteration (matches Java insertion order)
 	accessLevelList []*model.AccessLevel
@@ -30,13 +31,14 @@ type DataCache struct {
 // NewDataCache constructs an empty DataCache backed by the given client.
 func NewDataCache(client *client.Client) *DataCache {
 	return &DataCache{
-		client:       client,
-		accessLevels: make(map[int]*model.AccessLevel),
-		badges:       make(map[int]*model.Badge),
-		badgeByKey:   make(map[int]*model.Badge),
-		statuses:     make(map[int]*model.BadgeStatus),
-		badgeTypes:   make(map[int]*model.BadgeType),
-		cardholders:  make(map[int]*model.Cardholder),
+		client:              client,
+		accessLevels:        make(map[int]*model.AccessLevel),
+		accessLevelsByBadge: make(map[int][]*model.AccessLevel),
+		badges:              make(map[int]*model.Badge),
+		badgeByKey:          make(map[int]*model.Badge),
+		statuses:            make(map[int]*model.BadgeStatus),
+		badgeTypes:          make(map[int]*model.BadgeType),
+		cardholders:         make(map[int]*model.Cardholder),
 	}
 }
 
@@ -221,33 +223,31 @@ func (c *DataCache) fillBadges() error {
 }
 
 func (c *DataCache) fillAssignments() error {
-	// TODO
-	//items, err := c.client.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//for _, props := range items {
-	//	a, err := model.NewAccessLevelAssignment(props, c)
-	//	if err != nil {
-	//		log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
-	//		continue
-	//	}
-	//
-	//	c.assignments = append(c.assignments, a)
-	//}
-	//log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
+	items, err := c.client.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
+	if err != nil {
+		return err
+	}
+
+	for _, props := range items {
+		a, err := model.NewAccessLevelAssignmentFromJSON(props, c)
+		if err != nil {
+			log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
+			continue
+		}
+
+		c.assignments = append(c.assignments, a)
+	}
+	log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.assignments))
 	return nil
 }
 
-// GetAccessLevelsByBadge returns a map from badge ID to its assigned access levels,
-// in assignment order.
-func (c *DataCache) GetAccessLevelsByBadge() map[int][]*model.AccessLevel {
-	m := make(map[int][]*model.AccessLevel)
+func (c *DataCache) GetAccessLevelsByBadge(badgeID int) []*model.AccessLevel {
+	a := make([]*model.AccessLevel, 0)
 
-	for _, a := range c.assignments {
-		m[a.Badge.ID] = append(m[a.Badge.ID], a.AccessLevel)
+	r, ok := c.accessLevelsByBadge[badgeID]
+	if ok {
+		a = append(a, r...)
 	}
 
-	return m
+	return a
 }

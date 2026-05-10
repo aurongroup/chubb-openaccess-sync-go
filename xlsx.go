@@ -81,8 +81,6 @@ func writeBadgesSheet(f *excelize.File, cache *lenel2.DataCache, style int) erro
 		return err
 	}
 
-	levelsByBadgeID := cache.GetAccessLevelsByBadge()
-
 	for i, badge := range cache.GetBadges() {
 		row := i + 2
 		vals := []any{
@@ -95,7 +93,7 @@ func writeBadgesSheet(f *excelize.File, cache *lenel2.DataCache, style int) erro
 			cardholderSSNO(badge),
 		}
 
-		levels := levelsByBadgeID[badge.ID]
+		levels := cache.GetAccessLevelsByBadge(badge.ID)
 
 		for j := 0; j < 6; j++ {
 			if j < len(levels) {
