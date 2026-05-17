@@ -33,6 +33,12 @@ type AccessRecord struct {
 	Status        string
 	BadgeType     string
 	CardholderKey string
+	RecordKey     string
+}
+
+func (a *AccessRecord) GetKey() string {
+	str := fmt.Sprintf("%s%s%s", a.SSNO, a.First, a.Last)
+	return strings.ToUpper(stru.Clean(str))
 }
 
 func generateCardholderKey(ssno, first, last string) string {
@@ -85,21 +91,21 @@ func NewAccessRecord(
 }
 
 // ToRow converts an AccessRecord to a slice of strings for CSV output.
-func (r *AccessRecord) ToRow() []string {
+func (a *AccessRecord) ToRow() []string {
 	return []string{
-		r.SSNO,
-		r.First,
-		r.Last,
-		r.AccLvl1,
-		r.AccLvl2,
-		r.AccLvl3,
-		r.AccLvl4,
-		r.AccLvl5,
-		r.AccLvl6,
-		r.BadgeID,
-		date.Format(r.Activate),
-		date.Format(r.Deactivate),
-		r.Status,
-		r.BadgeType,
+		a.SSNO,
+		a.First,
+		a.Last,
+		a.AccLvl1,
+		a.AccLvl2,
+		a.AccLvl3,
+		a.AccLvl4,
+		a.AccLvl5,
+		a.AccLvl6,
+		a.BadgeID,
+		date.Format(a.Activate),
+		date.Format(a.Deactivate),
+		a.Status,
+		a.BadgeType,
 	}
 }

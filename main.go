@@ -71,11 +71,11 @@ func main() {
 
 		log.Printf(
 			"Total records: %d, Existing %d, Update %d, Delete %d, New %d",
-			len(csvRecords),
+			len(result.All),
 			len(result.Existing),
 			len(result.Update),
-			len(result.New),
 			len(result.Delete),
+			len(result.New),
 		)
 
 		if cfg.Verbose {

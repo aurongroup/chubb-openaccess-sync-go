@@ -86,42 +86,37 @@ type CompareResult struct {
 	All      []*model.AccessRecord
 }
 
-// CompareRecords classifies each record in first against second:
-// NEW if absent from second, EXISTING if content matches, UPDATE if different.
-// If a record in second is not in first it is marked DELETE.
-func CompareRecords(first, second []*model.AccessRecord, w io.Writer) CompareResult {
-	secondByID := make(map[string]*model.AccessRecord, len(second))
-	for _, r := range second {
-		secondByID[r.BadgeID] = r
+// CompareRecords classifies each record in source against target:
+// NEW if absent from target, EXISTING if content matches, UPDATE if different.
+// If a record in target is not in source it is marked DELETE.
+func CompareRecords(source, target []*model.AccessRecord, w io.Writer) CompareResult {
+	targetByKey := make(map[string]*model.AccessRecord, len(target))
+	for _, r := range target {
+		targetByKey[r.GetKey()] = r
 	}
 
-	//firstIDs := make(map[strings]struct{}, len(first)) // TODO
+	sourceByKey := make(map[string]struct{}, len(source))
 	var result CompareResult
 
-	// TODO
-	//for _, r := range first {
-	//	firstIDs[r.BadgeID] = struct{}{}
-	//
-	//	if s, ok := secondByID[r.BadgeID]; !ok {
-	//		r.SyncStatus = data.SyncNew
-	//		result.New = append(result.New, r)
-	//	} else if ContentEquals(r, s, w) {
-	//		r.SyncStatus = data.SyncExisting
-	//		result.Existing = append(result.Existing, r)
-	//	} else {
-	//		r.SyncStatus = data.SyncUpdate
-	//		result.Update = append(result.Update, r)
-	//	}
-	//	result.All = append(result.All, r)
-	//}
-	//
-	//for _, r := range second {
-	//	if _, ok := firstIDs[r.BadgeID]; !ok {
-	//		r.SyncStatus = data.SyncDelete
-	//		result.Delete = append(result.Delete, r)
-	//		result.All = append(result.All, r)
-	//	}
-	//}
+	for _, r := range source {
+		sourceByKey[r.GetKey()] = struct{}{}
+
+		if s, ok := targetByKey[r.GetKey()]; !ok {
+			result.New = append(result.New, r)
+		} else if ContentEquals(r, s, w) {
+			result.Existing = append(result.Existing, r)
+		} else {
+			result.Update = append(result.Update, r)
+		}
+		result.All = append(result.All, r)
+	}
+
+	for _, r := range target {
+		if _, ok := sourceByKey[r.GetKey()]; !ok {
+			result.Delete = append(result.Delete, r)
+			result.All = append(result.All, r)
+		}
+	}
 
 	return result
 }
