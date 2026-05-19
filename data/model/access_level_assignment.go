@@ -39,12 +39,12 @@ func NewAccessLevelAssignmentFromJSON(props map[string]any, cache IDCache) (*Acc
 		return nil, ErrAssignmentNilCache
 	}
 
-	alID := json.PropToInt(props, "AccessLevelID")
+	alID := json.PropToInt32(props, "AccessLevelID")
 	if alID == 0 {
 		return nil, ErrAssignmentNilAccessLevel
 	}
 
-	badgeKey := json.PropToInt(props, "BadgeKey")
+	badgeKey := json.PropToInt64(props, "BadgeKey")
 	if badgeKey == 0 {
 		return nil, ErrAssignmentNilBadge
 	}

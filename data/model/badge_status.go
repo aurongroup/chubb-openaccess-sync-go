@@ -12,11 +12,11 @@ var (
 
 // BadgeStatus represents a badge status from the OpenAccess API.
 type BadgeStatus struct {
-	ID   int
+	ID   int32
 	Name string
 }
 
-func NewBadgeStatus(id int, name string) (*BadgeStatus, error) {
+func NewBadgeStatus(id int32, name string) (*BadgeStatus, error) {
 	if id == 0 {
 		return nil, ErrBadgeStatusMissingID
 	}
@@ -34,7 +34,7 @@ func NewBadgeStatus(id int, name string) (*BadgeStatus, error) {
 
 func NewBadgeStatusFromJSON(props map[string]any) (*BadgeStatus, error) {
 	return NewBadgeStatus(
-		json.PropToInt(props, "ID"),
+		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
 }

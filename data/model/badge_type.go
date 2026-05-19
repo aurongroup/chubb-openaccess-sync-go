@@ -7,7 +7,7 @@ import (
 
 // BadgeType represents a badge type from the OpenAccess API.
 type BadgeType struct {
-	ID   int
+	ID   int32
 	Name string
 }
 
@@ -16,7 +16,7 @@ var (
 	ErrBadgeTypeMissingName = errors.New("badge type: missing required Name")
 )
 
-func NewBadgeType(id int, name string) (*BadgeType, error) {
+func NewBadgeType(id int32, name string) (*BadgeType, error) {
 	if id == 0 {
 		return nil, ErrBadgeTypeMissingID
 	}
@@ -34,7 +34,7 @@ func NewBadgeType(id int, name string) (*BadgeType, error) {
 
 func NewBadgeTypeFromJSON(props map[string]any) (*BadgeType, error) {
 	return NewBadgeType(
-		json.PropToInt(props, "ID"),
+		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
 }

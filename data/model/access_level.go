@@ -12,11 +12,11 @@ var (
 
 // AccessLevel represents an access level from the OpenAccess API.
 type AccessLevel struct {
-	ID   int
+	ID   int32
 	Name string
 }
 
-func NewAccessLevel(id int, name string) (*AccessLevel, error) {
+func NewAccessLevel(id int32, name string) (*AccessLevel, error) {
 	if id == 0 {
 		return nil, ErrAccessLevelMissingID
 	}
@@ -34,7 +34,7 @@ func NewAccessLevel(id int, name string) (*AccessLevel, error) {
 
 func NewAccessLevelFromJSON(props map[string]any) (*AccessLevel, error) {
 	return NewAccessLevel(
-		json.PropToInt(props, "ID"),
+		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
 }
