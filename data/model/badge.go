@@ -11,7 +11,6 @@ import (
 var (
 	ErrBadgeNilCache             = errors.New("badge: cache is nil")
 	ErrBadgeMissingID            = errors.New("badge: missing required ID")
-	ErrBadgeMissingBadgeKey      = errors.New("badge: missing required BadgeKey")
 	ErrBadgeUnresolvedStatus     = errors.New("badge: STATUS not found in cache")
 	ErrBadgeUnresolvedType       = errors.New("badge: TYPE not found in cache")
 	ErrBadgeUnresolvedCardholder = errors.New("badge: CARDHOLDER not found in cache")
@@ -44,15 +43,18 @@ type Badge struct {
 	Key        int32
 	Activate   *time.Time
 	Deactivate *time.Time
-	Status     *BadgeStatus
-	Type       *BadgeType
-	Cardholder *Cardholder
+	Status     int32
+	Type       int32
+	Cardholder int32
+	//Status     *BadgeStatus
+	//Type       *BadgeType
+	//Cardholder *Cardholder
 }
 
-func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus *BadgeStatus, badgeType *BadgeType, cardholder *Cardholder) (*Badge, error) {
+func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus, badgeType, cardholder int32) (*Badge, error) {
 
-	if key == 0 {
-		return nil, ErrBadgeMissingBadgeKey
+	if id == 0 {
+		return nil, ErrBadgeMissingID
 	}
 
 	b := &Badge{
@@ -60,19 +62,23 @@ func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus 
 		Key:        key,
 		Activate:   activate,
 		Deactivate: deactivate,
+		Status:     badgeStatus,
+		Type:       badgeType,
+		Cardholder: cardholder,
 	}
 
-	if badgeStatus == nil {
-		return nil, ErrBadgeUnresolvedStatus
-	}
-	b.Status = badgeStatus
-
-	if badgeType == nil {
-		return nil, ErrBadgeUnresolvedType
-	}
-	b.Type = badgeType
-
-	b.Cardholder = cardholder
+	// FIXME
+	//if badgeStatus == nil {
+	//	return nil, ErrBadgeUnresolvedStatus
+	//}
+	//b.Status = badgeStatus
+	//
+	//if badgeType == nil {
+	//	return nil, ErrBadgeUnresolvedType
+	//}
+	//b.Type = badgeType
+	//
+	//b.Cardholder = cardholder
 
 	return b, nil
 }
@@ -88,9 +94,6 @@ func NewBadgeFromJSON(props map[string]any, cache IDCache) (*Badge, error) {
 	}
 
 	key := json.PropToInt32(props, "BADGEKEY")
-	if key == 0 {
-		return nil, ErrBadgeMissingBadgeKey
-	}
 
 	activate := json.PropToDate(props, "ACTIVATE")
 	deactivate := json.PropToDate(props, "DEACTIVATE")
@@ -100,27 +103,29 @@ func NewBadgeFromJSON(props map[string]any, cache IDCache) (*Badge, error) {
 		return nil, ErrBadgeUnresolvedStatus
 	}
 
-	badgeStatus := cache.GetBadgeStatus(statusID)
-	if badgeStatus == nil {
-		return nil, ErrBadgeUnresolvedStatus
-	}
+	//badgeStatus := cache.GetBadgeStatus(statusID)
+	//if badgeStatus == nil {
+	//	return nil, ErrBadgeUnresolvedStatus
+	//}
 
 	typeID := json.PropToInt32(props, "TYPE")
 	if typeID == 0 {
 		return nil, ErrBadgeUnresolvedType
 	}
 
-	badgeType := cache.GetBadgeType(typeID)
-	if badgeType == nil {
-		return nil, ErrBadgeUnresolvedType
-	}
+	//badgeType := cache.GetBadgeType(typeID)
+	//if badgeType == nil {
+	//	return nil, ErrBadgeUnresolvedType
+	//}
 
-	var cardholder *Cardholder = nil
+	//var cardholder *Cardholder = nil // FIXME
+	personID := json.PropToInt32(props, "PERSONID")
 	//if personID := json.PropToInt(props, "PERSONID"); personID != 0 { // FIXME
 	//	cardholder = cache.GetCardholder(personID)
 	//}
 
-	return NewBadge(id, key, activate, deactivate, badgeStatus, badgeType, cardholder)
+	//return NewBadge(id, key, activate, deactivate, badgeStatus, badgeType, cardholder) // FIXME
+	return NewBadge(id, key, activate, deactivate, statusID, typeID, personID)
 }
 
 // FIXME
@@ -174,24 +179,24 @@ func NewBadgeFromJSON(props map[string]any, cache IDCache) (*Badge, error) {
 func (b *Badge) ToAccessRecord(accessLevels []*AccessLevel) (*AccessRecord, error) {
 	var ssno, first, last, status, badgeType string
 
-	if b.Cardholder != nil {
-		ssno = b.Cardholder.SSNO
-		first = b.Cardholder.FirstName
-		last = b.Cardholder.LastName
-	}
+	//if b.Cardholder != nil { // FIXME
+	//	ssno = b.Cardholder.SSNO
+	//	first = b.Cardholder.FirstName
+	//	last = b.Cardholder.LastName
+	//}
 
 	lvl := [6]string{}
 	for i := 0; i < len(accessLevels) && i < 6; i++ {
 		lvl[i] = accessLevels[i].Name
 	}
 
-	if b.Status != nil {
-		status = b.Status.Name
-	}
-
-	if b.Type != nil {
-		badgeType = b.Type.Name
-	}
+	//if b.Status != nil { // FIXME
+	//	status = b.Status.Name
+	//}
+	//
+	//if b.Type != nil {
+	//	badgeType = b.Type.Name
+	//}
 
 	return NewAccessRecord(
 		ssno, first, last,

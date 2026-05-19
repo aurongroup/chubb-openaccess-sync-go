@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"io"
 	"log"
 	"openaccess-sync/client"
 	"openaccess-sync/config"
@@ -10,6 +9,7 @@ import (
 	"openaccess-sync/data/lenel"
 	"openaccess-sync/data/model"
 	"os"
+	"strconv"
 
 	"github.com/spf13/pflag"
 )
@@ -38,9 +38,9 @@ func main() {
 	}()
 
 	cache := lenel.NewDataCache(cl)
-	if err := cache.Fill(); err != nil {
-		log.Fatalf("Failed to load API data: %v", err)
-	}
+	//if err := cache.Fill(); err != nil {
+	//	log.Fatalf("Failed to load API data: %v", err)
+	//}
 
 	switch cfg.Mode {
 	case config.ModeExport:
@@ -52,6 +52,97 @@ func main() {
 		}
 
 	case config.ModeSync:
+		items, err := cl.GetInstancesWithProgress("Lnl_BadgeStatus", "")
+		if err != nil {
+			log.Fatalf("Operation failed: %v", err)
+		}
+
+		statusList := make([]*model.BadgeStatus, 0)
+		statusListByID := make(map[int32]*model.BadgeStatus)
+		statusListByName := make(map[string]*model.BadgeStatus)
+		for _, props := range items {
+			s, err := model.NewBadgeStatusFromJSON(props)
+			if err != nil {
+				log.Printf("skipping Lnl_BadgeStatus: %v", err)
+				continue
+			}
+
+			statusList = append(statusList, s)
+			statusListByID[s.ID] = s
+			statusListByName[s.Name] = s
+		}
+
+		log.Printf("Retrieved %d Lnl_BadgeStatus records", len(statusList))
+
+		items, err = cl.GetInstancesWithProgress("Lnl_BadgeType", "")
+		if err != nil {
+			log.Printf("skipping Lnl_BadgeType: %v", err)
+		}
+
+		typeList := make([]*model.BadgeType, 0)
+		typeListByID := make(map[int32]*model.BadgeType)
+		typeListByName := make(map[string]*model.BadgeType)
+		for _, props := range items {
+			t, err := model.NewBadgeTypeFromJSON(props)
+			if err != nil {
+				log.Printf("skipping Lnl_BadgeType: %v", err)
+				continue
+			}
+
+			typeList = append(typeList, t)
+			typeListByID[t.ID] = t
+			typeListByName[t.Name] = t
+		}
+
+		log.Printf("Retrieved %d Lnl_BadgeType records", len(typeList))
+
+		csvRecords, err := ParseCSV(cfg.File)
+		if err != nil {
+			log.Fatalf("Operation failed: %v", err)
+		}
+
+		csvBadges := make([]*model.Badge, 0, len(csvRecords))
+		csvBadgesByID := make(map[int64]*model.Badge)
+		for _, r := range csvRecords {
+			id, err := strconv.ParseInt(r.BadgeID, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			badgeStatus, ok := statusListByName[r.Status]
+			if !ok {
+				log.Printf("skipping CSV badge: unknown status %s", r.Status)
+				continue
+			}
+
+			badgeType, ok := typeListByName[r.BadgeType]
+			if !ok {
+				log.Printf("skipping CSV badge: unknown type %s", r.BadgeType)
+				continue
+			}
+
+			//log.Printf("Processing CSV badge: ID=%d, Status=%s, Type=%s", id, r.Status, r.BadgeType)
+
+			b, err := model.NewBadge(
+				int64(id),
+				0,
+				nil,
+				nil,
+				badgeStatus.ID,
+				badgeType.ID,
+				0,
+			)
+			if err != nil {
+				log.Printf("skipping CSV badge: %v", err)
+				continue
+			}
+
+			csvBadges = append(csvBadges, b)
+			csvBadgesByID[b.ID] = b
+		}
+
+		log.Printf("Retrieved %d CSV Badge records", len(csvBadges))
+
 		// Get badges
 		badges, err := cl.GetInstancesWithProgress("Lnl_Badge", "")
 		if err != nil {
@@ -72,9 +163,22 @@ func main() {
 			badgeList = append(badgeList, b)
 			badgesByID[b.ID] = b
 			badgesByKey[b.Key] = b
+
+			//log.Printf("Processing Lenel badge: ID=%d, Status=%s, Type=%s", b.ID, statusListByID[b.Status].Name, typeListByID[b.Type].Name)
 		}
 
-		log.Printf("Retrieved %d Lnl_Badges records", len(badgeList))
+		log.Printf("Retrieved %d Lnl_Badge records", len(badgeList))
+
+		for _, b := range badgeList {
+			if _, ok := csvBadgesByID[b.ID]; !ok {
+				log.Printf("deleting Lenel badge: ID=%d, Status=%s, Type=%s", b.ID, b.Status, b.Type)
+
+				// Remove from cache
+				continue
+			} else {
+				// Compare if the same, update if necessary
+			}
+		}
 
 		// Remove all badges that are not in the CSV
 		// Remove all cardholders that are not in the CSV
@@ -94,39 +198,39 @@ func main() {
 		// - 7.2 Update access levels
 		// - 7.3 Delete badges from Lenel that are not in CSV
 
-		arc := csv.BuildAccessRecordCache(cache)
+		//arc := csv.BuildAccessRecordCache(cache)
 
-		csvRecords, err := ParseCSV(cfg.File)
-		if err != nil {
-			log.Fatalf("Operation failed: %v", err)
-		}
+		//csvRecords, err := ParseCSV(cfg.File)
+		//if err != nil {
+		//	log.Fatalf("Operation failed: %v", err)
+		//}
 
-		var diffWriter io.Writer
-		if cfg.DiffFile != "" {
-			f, err := os.Create(cfg.DiffFile)
-			if err != nil {
-				log.Fatalf("Failed to open diff file: %v", err)
-			}
-			defer f.Close()
-			diffWriter = f
-		}
-		result := CompareRecords(csvRecords, arc.Records(), diffWriter)
+		//var diffWriter io.Writer
+		//if cfg.DiffFile != "" {
+		//	f, err := os.Create(cfg.DiffFile)
+		//	if err != nil {
+		//		log.Fatalf("Failed to open diff file: %v", err)
+		//	}
+		//	defer f.Close()
+		//	diffWriter = f
+		//}
+		//result := CompareRecords(csvRecords, arc.Records(), diffWriter)
 
-		log.Printf(
-			"Total records: %d, Existing %d, Update %d, Delete %d, New %d",
-			len(result.All),
-			len(result.Existing),
-			len(result.Update),
-			len(result.Delete),
-			len(result.New),
-		)
-
-		if cfg.Verbose {
-			for _, r := range result.All {
-				//log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID) // TODO
-				log.Printf("ssno=%s badgeId=%s", r.SSNO, r.BadgeID)
-			}
-		}
+		//log.Printf(
+		//	"Total records: %d, Existing %d, Update %d, Delete %d, New %d",
+		//	len(result.All),
+		//	len(result.Existing),
+		//	len(result.Update),
+		//	len(result.Delete),
+		//	len(result.New),
+		//)
+		//
+		//if cfg.Verbose {
+		//	for _, r := range result.All {
+		//		//log.Printf("status=%s ssno=%s badgeId=%s", r.SyncStatus.String(), r.SSNO, r.BadgeID) // TODO
+		//		log.Printf("ssno=%s badgeId=%s", r.SSNO, r.BadgeID)
+		//	}
+		//}
 
 	case config.ModeCleanup:
 		log.Println("cleanup not yet implemented")

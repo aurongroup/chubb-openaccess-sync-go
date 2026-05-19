@@ -209,25 +209,25 @@ func writeBadgeStatusesSheet(f *excelize.File, cache *lenel2.DataCache, style in
 }
 
 func badgeStatusName(b *model.Badge) string {
-	if b.Status != nil {
-		return b.Status.Name
-	}
+	//if b.Status != nil { // FIXME
+	//	return b.Status.Name
+	//}
 
 	return ""
 }
 
 func badgeTypeName(b *model.Badge) string {
-	if b.Type != nil {
-		return b.Type.Name
-	}
+	//if b.Type != nil { // FIXME
+	//	return b.Type.Name
+	//}
 
 	return ""
 }
 
 func cardholderSSNO(b *model.Badge) string {
-	if b.Cardholder != nil {
-		return b.Cardholder.SSNO
-	}
+	//if b.Cardholder != nil { // FIXME
+	//	return b.Cardholder.SSNO
+	//}
 
 	return ""
 }
