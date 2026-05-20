@@ -177,9 +177,10 @@ func (c *DataCache) Fill() error {
 		return err
 	}
 
-	if err := c.fillCardholders(); err != nil {
-		return err
-	}
+	// FIXME
+	//if err := c.fillCardholders(); err != nil {
+	//	return err
+	//}
 
 	// FIXME
 	//if err := c.fillBadges(); err != nil {
