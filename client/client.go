@@ -314,8 +314,12 @@ func (c *Client) UpdateInstance(_ string, _ map[string]any) error {
 }
 
 // DeleteInstance deletes an instance by sending its representation.
-func (c *Client) DeleteInstance(typeName string, body map[string]any) error {
+func (c *Client) DeleteInstance(typeName string, params map[string]any) error {
 	uri := c.baseURL + "/instances?version=" + apiVersion
+
+	body := make(map[string]any)
+	body["type_name"] = typeName
+	body["property_value_map"] = params
 
 	resp, _, err := c.do("DELETE", uri, body, c.authHeaders())
 	if err != nil {
@@ -327,4 +331,99 @@ func (c *Client) DeleteInstance(typeName string, body map[string]any) error {
 	}
 
 	return nil
+}
+
+// GetCardholdersWithProgress fetches all pages of cardholder data, displaying a
+// progress bar as each page arrives.
+// Returns the property_value_map contents for each item.
+func (c *Client) GetCardholdersWithProgress(detachedOnly bool, filter string) ([]map[string]any, error) {
+	return c.getCardholders(detachedOnly, filter, true)
+}
+
+// getInstances fetches all pages of the given type, and if required, displaying a
+// progress bar as each page arrives.
+func (c *Client) getCardholders(detachedOnly bool, filter string, progress bool) ([]map[string]any, error) {
+	log.Printf("Fetching Lnl_Cardholder pages from OpenAccess API...")
+
+	var bar *progressbar.ProgressBar
+	var all []map[string]any
+
+	for page := 1; ; page++ {
+		items, totalPages, err := c.getCardholderPage(detachedOnly, filter, page)
+		if err != nil {
+			return nil, err
+		}
+
+		if progress {
+			if bar == nil {
+				bar = progressbar.NewOptions(totalPages,
+					progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
+					progressbar.OptionEnableColorCodes(true),
+					progressbar.OptionSetDescription("Lnl_Cardholder"),
+					progressbar.OptionShowDescriptionAtLineEnd(),
+					progressbar.OptionShowCount(),
+					progressbar.OptionSetWidth(30),
+					progressbar.OptionSetTheme(progressbar.Theme{
+						Saucer:        "[green]=[reset]",
+						SaucerHead:    "[green]>[reset]",
+						SaucerPadding: " ",
+						BarStart:      "[",
+						BarEnd:        "]",
+					}),
+				)
+			}
+			_ = bar.Add(1)
+		}
+
+		all = append(all, items...)
+
+		if page >= totalPages {
+			break
+		}
+	}
+
+	if progress {
+		_ = bar.Finish()
+	}
+
+	fmt.Println()
+
+	return all, nil
+}
+
+func (c *Client) getCardholderPage(detachedOnly bool, filter string, page int) ([]map[string]any, int, error) {
+	params := url.Values{}
+	params.Set("version", apiVersion)
+	params.Set("page_size", strconv.Itoa(c.pageSize))
+	params.Set("page_number", strconv.Itoa(page))
+
+	if detachedOnly {
+		params.Set("has_badges", "false")
+	}
+
+	if filter != "" {
+		params.Set("filter", filter)
+	}
+
+	uri := c.baseURL + "/cardholders?" + params.Encode()
+	resp, raw, err := c.do("GET", uri, nil, c.authHeaders())
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, 0, &ClientError{Message: "unexpected status", Method: "GET", URI: uri, StatusCode: resp.StatusCode}
+	}
+
+	var result InstanceResponse
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, 0, &ClientError{Message: "parse response: " + err.Error(), Method: "GET", URI: uri}
+	}
+
+	var items []map[string]any
+	for _, item := range result.ItemList {
+		items = append(items, item.PropertyMap)
+	}
+
+	return items, result.TotalPages, nil
 }

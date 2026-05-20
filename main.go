@@ -63,6 +63,7 @@ func main() {
 			10. Process access level assignments - remove missing, update as required, add new (sort by access level name)
 		*/
 
+		// 1. Retrieve status, type, and access levels from Lenel
 		bsc := lenel.NewBadgeStatusCache()
 		if err := bsc.Fill(cl); err != nil {
 			log.Fatalf("Badge status cache fill failed: %v", err)
@@ -78,15 +79,13 @@ func main() {
 			log.Fatalf("Access level cache fill failed: %v", err)
 		}
 
-		//if err := cache.Fill(); err != nil {
-		//	log.Fatalf("Operation failed: %v", err)
-		//}
-
+		// 2. Parse CSV....
 		csvCache, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 
+		// ... and ensure that all badge statuses, badge types, and access levels already exist in Lenel
 		if err := bsc.Validate(csvCache.BadgeStatusNames()); err != nil {
 			log.Fatalf("Fatal data mismatch: %v", err)
 		}
@@ -98,6 +97,29 @@ func main() {
 		if err := alc.Validate(csvCache.AccessLevelNames()); err != nil {
 			log.Fatalf("Fatal data mismatch: %v", err)
 		}
+
+		// Cleanup Cardholders that don't have badges
+		chc := lenel.NewCardholderCache()
+		if err := chc.FillDetached(cl); err != nil {
+			log.Fatalf("Cardholder cache fill failed: %v", err)
+		}
+
+		for _, ch := range chc.GetItems() {
+			log.Printf("Deleting detached cardholder with ID %d", ch.ID)
+			err := cl.DeleteInstance("Lnl_Cardholder", map[string]interface{}{"ID": ch.ID})
+			if err != nil {
+				log.Printf("->  to delete cardholder with ID %d: %v", ch.ID, err)
+			}
+		}
+
+		// Remove Cardholders that don't have an SSNO and are duplicates
+
+		// 3. Retrieve Cardholders from Lenel that have a NULL SSNO so we can clean up duplicates
+		//chc := lenel.NewCardholderCache()
+		//if err := chc.FillSSNO(cl); err != nil {
+		//	log.Fatalf("Cardholder cache fill failed: %v", err)
+		//}
+
 		//if err := cache.ValidateAccessRecords(csvCache.Records()); err != nil {
 		//	log.Fatalf("CSV validation failed: %v", err)
 		//}
