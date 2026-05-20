@@ -63,9 +63,24 @@ func main() {
 			10. Process access level assignments - remove missing, update as required, add new (sort by access level name)
 		*/
 
-		if err := cache.Fill(); err != nil {
-			log.Fatalf("Operation failed: %v", err)
+		bsc := lenel.NewBadgeStatusCache()
+		if err := bsc.Fill(cl); err != nil {
+			log.Fatalf("Badge status cache fill failed: %v", err)
 		}
+
+		btc := lenel.NewBadgeTypeCache()
+		if err := btc.Fill(cl); err != nil {
+			log.Fatalf("Badge type cache fill failed: %v", err)
+		}
+
+		alc := lenel.NewAccessLevelCache()
+		if err := alc.Fill(cl); err != nil {
+			log.Fatalf("Access level cache fill failed: %v", err)
+		}
+
+		//if err := cache.Fill(); err != nil {
+		//	log.Fatalf("Operation failed: %v", err)
+		//}
 
 		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
