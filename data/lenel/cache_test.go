@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-// newTestCache builds a DataCache with empty by-name maps and no client,
+// newTestCache builds a DataCache with empty sub-caches and no client,
 // suitable for unit-testing methods that only access the in-memory maps.
 func newTestCache() *DataCache {
 	return &DataCache{
-		statusesByName:     make(map[string]*model.BadgeStatus),
-		badgeTypesByName:   make(map[string]*model.BadgeType),
-		accessLevelsByName: make(map[string]*model.AccessLevel),
+		statuses:     newBadgeStatusCache(),
+		badgeTypes:   newBadgeTypeCache(),
+		accessLevels: newAccessLevelCache(),
 	}
 }
 
@@ -38,9 +38,9 @@ func TestValidateAccessRecords_shouldReturnNilForEmptyInput(t *testing.T) {
 
 func TestValidateAccessRecords_shouldReturnNilWhenAllValuesKnown(t *testing.T) {
 	c := newTestCache()
-	c.statusesByName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
-	c.accessLevelsByName["Floor 1"] = &model.AccessLevel{ID: 1, Name: "Floor 1"}
+	c.statuses.byName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.accessLevels.byName["Floor 1"] = &model.AccessLevel{ID: 1, Name: "Floor 1"}
 
 	records := []*model.AccessRecord{newRecord("Active", "Employee", "Floor 1")}
 	if err := c.ValidateAccessRecords(records); err != nil {
@@ -50,7 +50,7 @@ func TestValidateAccessRecords_shouldReturnNilWhenAllValuesKnown(t *testing.T) {
 
 func TestValidateAccessRecords_shouldReturnErrorForUnknownStatus(t *testing.T) {
 	c := newTestCache()
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
 
 	err := c.ValidateAccessRecords([]*model.AccessRecord{newRecord("Unknown", "Employee")})
 	if err == nil {
@@ -66,7 +66,7 @@ func TestValidateAccessRecords_shouldReturnErrorForUnknownStatus(t *testing.T) {
 
 func TestValidateAccessRecords_shouldReturnErrorForUnknownBadgeType(t *testing.T) {
 	c := newTestCache()
-	c.statusesByName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
+	c.statuses.byName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
 
 	err := c.ValidateAccessRecords([]*model.AccessRecord{newRecord("Active", "Contractor")})
 	if err == nil {
@@ -82,8 +82,8 @@ func TestValidateAccessRecords_shouldReturnErrorForUnknownBadgeType(t *testing.T
 
 func TestValidateAccessRecords_shouldReturnErrorForUnknownAccessLevel(t *testing.T) {
 	c := newTestCache()
-	c.statusesByName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.statuses.byName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
 
 	err := c.ValidateAccessRecords([]*model.AccessRecord{newRecord("Active", "Employee", "NoSuchLevel")})
 	if err == nil {
@@ -99,9 +99,9 @@ func TestValidateAccessRecords_shouldReturnErrorForUnknownAccessLevel(t *testing
 
 func TestValidateAccessRecords_shouldCheckAllSixAccessLevelSlots(t *testing.T) {
 	c := newTestCache()
-	c.statusesByName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
-	c.accessLevelsByName["Known"] = &model.AccessLevel{ID: 1, Name: "Known"}
+	c.statuses.byName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.accessLevels.byName["Known"] = &model.AccessLevel{ID: 1, Name: "Known"}
 
 	err := c.ValidateAccessRecords([]*model.AccessRecord{
 		newRecord("Active", "Employee", "Known", "Known", "Known", "Known", "Known", "Missing6"),
@@ -116,8 +116,8 @@ func TestValidateAccessRecords_shouldCheckAllSixAccessLevelSlots(t *testing.T) {
 
 func TestValidateAccessRecords_shouldSkipEmptyAccessLevelSlots(t *testing.T) {
 	c := newTestCache()
-	c.statusesByName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.statuses.byName["Active"] = &model.BadgeStatus{ID: 1, Name: "Active"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
 
 	// no levels provided — all six slots are empty strings
 	if err := c.ValidateAccessRecords([]*model.AccessRecord{newRecord("Active", "Employee")}); err != nil {
@@ -127,7 +127,7 @@ func TestValidateAccessRecords_shouldSkipEmptyAccessLevelSlots(t *testing.T) {
 
 func TestValidateAccessRecords_shouldDeduplicateUnknownValues(t *testing.T) {
 	c := newTestCache()
-	c.badgeTypesByName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
+	c.badgeTypes.byName["Employee"] = &model.BadgeType{ID: 1, Name: "Employee"}
 
 	records := []*model.AccessRecord{
 		newRecord("Unknown", "Employee"),

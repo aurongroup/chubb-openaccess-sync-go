@@ -1,0 +1,38 @@
+package lenel
+
+import "openaccess-sync/data/model"
+
+type BadgeCache struct {
+	list  []*model.Badge
+	byID  map[int32]*model.Badge
+	byKey map[int64]*model.Badge
+}
+
+func newBadgeCache() BadgeCache {
+	return BadgeCache{
+		byID:  make(map[int32]*model.Badge),
+		byKey: make(map[int64]*model.Badge),
+	}
+}
+
+// FIXME
+//func (c *BadgeCache) fill(cl *client.Client, cache model.IDCache) error {
+//	items, err := cl.GetInstancesWithProgress("Lnl_Badge", "")
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, props := range items {
+//		b, err := model.NewBadgeFromJSON(props, cache)
+//		if err != nil {
+//			log.Printf("skipping Lnl_Badge: %v", err)
+//			continue
+//		}
+//
+//		c.list = append(c.list, b)
+//		c.byID[b.ID] = b  // note: Badge.ID is int64, map key is int32 — needs review
+//		c.byKey[b.Key] = b
+//	}
+//	log.Printf("Retrieved %d Lnl_Badge records", len(c.list))
+//	return nil
+//}
