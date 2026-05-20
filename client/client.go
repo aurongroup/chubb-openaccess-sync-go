@@ -304,8 +304,26 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 }
 
 // CreateInstance is a stub — not yet implemented.
-func (c *Client) CreateInstance(_ string, _ map[string]any) (int, error) {
-	return 0, errors.New("not implemented")
+func (c *Client) CreateInstance(typeName string, params map[string]any) (int32, error) {
+	uri := c.baseURL + "/instances?version=" + apiVersion
+
+	body := make(map[string]any)
+	body["type_name"] = typeName
+	body["property_value_map"] = params
+
+	resp, _, err := c.do("POST", uri, body, c.authHeaders())
+	if err != nil {
+		return 0, err
+	}
+
+	// {"property_value_map":{"BADGEKEY":13243},"type_name":"Lnl_Badge","version":"1.0"}
+	// {"property_value_map":{"ID":13427},"type_name":"Lnl_Cardholder","version":"1.0"}
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, &ClientError{Message: "create failed", Method: "POST", URI: uri, StatusCode: resp.StatusCode}
+	}
+
+	return 0, nil // FIXME
 }
 
 // UpdateInstance is a stub — not yet implemented.

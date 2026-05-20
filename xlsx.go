@@ -93,7 +93,7 @@ func writeBadgesSheet(f *excelize.File, cache *lenel2.DataCache, style int) erro
 			cardholderSSNO(badge),
 		}
 
-		levels := cache.GetAccessLevelsByBadge(badge.ID)
+		levels := cache.GetAccessLevelsByBadge(badge.Key) // FIXME - changed ID to Key to enable compilation
 
 		for j := 0; j < 6; j++ {
 			if j < len(levels) {

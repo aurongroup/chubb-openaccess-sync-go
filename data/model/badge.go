@@ -83,11 +83,7 @@ func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus,
 	return b, nil
 }
 
-func NewBadgeFromJSON(props map[string]any, cache IDCache) (*Badge, error) {
-	if cache == nil {
-		return nil, ErrBadgeNilCache
-	}
-
+func NewBadgeFromJSON(props map[string]any) (*Badge, error) {
 	id := json.PropToInt64(props, "ID")
 	if id == 0 {
 		return nil, ErrBadgeMissingID
@@ -103,28 +99,16 @@ func NewBadgeFromJSON(props map[string]any, cache IDCache) (*Badge, error) {
 		return nil, ErrBadgeUnresolvedStatus
 	}
 
-	//badgeStatus := cache.GetBadgeStatus(statusID)
-	//if badgeStatus == nil {
-	//	return nil, ErrBadgeUnresolvedStatus
-	//}
-
 	typeID := json.PropToInt32(props, "TYPE")
 	if typeID == 0 {
 		return nil, ErrBadgeUnresolvedType
 	}
 
-	//badgeType := cache.GetBadgeType(typeID)
-	//if badgeType == nil {
-	//	return nil, ErrBadgeUnresolvedType
-	//}
-
-	//var cardholder *Cardholder = nil // FIXME
 	personID := json.PropToInt32(props, "PERSONID")
-	//if personID := json.PropToInt(props, "PERSONID"); personID != 0 { // FIXME
-	//	cardholder = cache.GetCardholder(personID)
-	//}
+	if personID == 0 {
+		return nil, ErrBadgeUnresolvedCardholder
+	}
 
-	//return NewBadge(id, key, activate, deactivate, badgeStatus, badgeType, cardholder) // FIXME
 	return NewBadge(id, key, activate, deactivate, statusID, typeID, personID)
 }
 

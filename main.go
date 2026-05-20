@@ -120,13 +120,35 @@ func main() {
 			log.Fatalf("No SSNO Cardholder cache fill failed: %v", err)
 		}
 
+		// Cardholders can only have a maximum of two active badges......
+
 		duplicates := chc.GetDuplicates()
 		for k, chs := range duplicates {
-			log.Printf("Processing duplicates for %s (%d)\n", k, chs[0].ID)
+			log.Printf("Processing duplicates for %s (%d)", k, chs[0].ID)
 			for _, ch := range chs[1:] {
 				// Grab assigned badges for duplicate
 				bc := lenel.NewBadgeCache()
-				bc.Fill()
+				if err := bc.FillActiveForCardholder(cl, ch); err != nil {
+					log.Fatalf("Badge cache fill for Cardholder %d failed: %v", ch.ID, err)
+				}
+
+				for _, badge := range bc.GetItems() {
+					log.Printf("-> Processing Badge %d for duplicate Cardholder %d", badge.ID, ch.ID)
+
+					ac := lenel.NewAssignmentCache()
+					if err := ac.FillForBadge(cl, badge); err != nil {
+						log.Fatalf("Assignment cache fill for Badge %d (%d) failed: %v", badge.ID, badge.Key, err)
+					}
+
+					for _, assignment := range ac.GetItems() {
+						log.Printf("--> Processing Assignment %d for Badge %d (%d)", assignment.AccessLevel, badge.ID, badge.Key)
+					}
+
+					// Delete the original badge
+					// Create a new badge
+					// Create assignments
+					//cl.CreateInstance()
+				}
 				// For each badge, grab access levels
 				// Delete badge
 				// Create new badge against primary

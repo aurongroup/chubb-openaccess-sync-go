@@ -10,13 +10,13 @@ import (
 
 // DataCache holds all data fetched from the OpenAccess API.
 type DataCache struct {
-	client      *client.Client
-	statuses    BadgeStatusCache
-	badgeTypes  BadgeTypeCache
+	client       *client.Client
+	statuses     BadgeStatusCache
+	badgeTypes   BadgeTypeCache
 	accessLevels AccessLevelCache
-	badges      BadgeCache
-	cardholders CardholderCache
-	assignments AssignmentCache
+	badges       BadgeCache
+	cardholders  CardholderCache
+	assignments  AssignmentCache
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.
@@ -45,10 +45,10 @@ func (c *DataCache) GetAccessLevels() []*model.AccessLevel {
 	return c.accessLevels.list
 }
 
-func (c *DataCache) GetAccessLevelsByBadge(badgeKey int64) []*model.AccessLevel {
-	if levels, ok := c.assignments.byBadgeKey[badgeKey]; ok {
-		return levels
-	}
+func (c *DataCache) GetAccessLevelsByBadge(badgeKey int32) []*model.AccessLevel {
+	//if levels, ok := c.assignments.byBadgeKey[badgeKey]; ok { // FIXME
+	//	return levels
+	//}
 	return []*model.AccessLevel{}
 }
 
@@ -182,4 +182,3 @@ func sortedKeys(m map[string]struct{}) string {
 	sort.Strings(keys)
 	return "[" + strings.Join(keys, " ") + "]"
 }
-
