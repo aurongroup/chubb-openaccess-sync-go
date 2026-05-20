@@ -19,7 +19,7 @@ func newBadgeTypeCache() BadgeTypeCache {
 }
 
 func (c *BadgeTypeCache) fill(cl *client.Client) error {
-	list, byID, byName, err := fetchAndIndex(cl, "Lnl_BadgeType",
+	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_BadgeType",
 		model.NewBadgeTypeFromJSON,
 		func(t *model.BadgeType) int32 { return t.ID },
 		func(t *model.BadgeType) string { return t.Name },
@@ -27,6 +27,6 @@ func (c *BadgeTypeCache) fill(cl *client.Client) error {
 	if err != nil {
 		return err
 	}
-	c.list, c.byID, c.byName = list, byID, byName
+	c.list, c.byID, c.byName = list, byID, byKey
 	return nil
 }

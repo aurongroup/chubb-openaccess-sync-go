@@ -12,7 +12,7 @@ func fetchAndIndex[T any](
 	typeName string,
 	fromJSON func(map[string]any) (*T, error),
 	getID func(*T) int32,
-	getName func(*T) string,
+	getKey func(*T) string,
 ) ([]*T, map[int32]*T, map[string]*T, error) {
 	items, err := cl.GetInstancesWithProgress(typeName, "")
 	if err != nil {
@@ -21,7 +21,7 @@ func fetchAndIndex[T any](
 
 	list := make([]*T, 0, len(items))
 	byID := make(map[int32]*T, len(items))
-	byName := make(map[string]*T, len(items))
+	byKey := make(map[string]*T, len(items))
 
 	for _, props := range items {
 		item, err := fromJSON(props)
@@ -31,9 +31,9 @@ func fetchAndIndex[T any](
 		}
 		list = append(list, item)
 		byID[getID(item)] = item
-		byName[getName(item)] = item
+		byKey[getKey(item)] = item
 	}
 
 	log.Printf("Retrieved %d %s records", len(list), typeName)
-	return list, byID, byName, nil
+	return list, byID, byKey, nil
 }

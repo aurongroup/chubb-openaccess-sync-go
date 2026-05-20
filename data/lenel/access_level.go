@@ -19,7 +19,7 @@ func newAccessLevelCache() AccessLevelCache {
 }
 
 func (c *AccessLevelCache) fill(cl *client.Client) error {
-	list, byID, byName, err := fetchAndIndex(cl, "Lnl_AccessLevel",
+	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_AccessLevel",
 		model.NewAccessLevelFromJSON,
 		func(al *model.AccessLevel) int32 { return al.ID },
 		func(al *model.AccessLevel) string { return al.Name },
@@ -27,6 +27,6 @@ func (c *AccessLevelCache) fill(cl *client.Client) error {
 	if err != nil {
 		return err
 	}
-	c.list, c.byID, c.byName = list, byID, byName
+	c.list, c.byID, c.byName = list, byID, byKey
 	return nil
 }
