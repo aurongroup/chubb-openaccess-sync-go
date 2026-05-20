@@ -65,75 +65,17 @@ func main() {
 			10. Process access level assignments - remove missing, update as required, add new (sort by access level name)
 		*/
 
-		items, err := cl.GetInstancesWithProgress("Lnl_BadgeStatus", "")
-		if err != nil {
+		if err := cache.Fill(); err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
-
-		statusList := make([]*model.BadgeStatus, 0)
-		statusListByID := make(map[int32]*model.BadgeStatus)
-		statusListByName := make(map[string]*model.BadgeStatus)
-		for _, props := range items {
-			s, err := model.NewBadgeStatusFromJSON(props)
-			if err != nil {
-				log.Printf("skipping Lnl_BadgeStatus: %v", err)
-				continue
-			}
-
-			statusList = append(statusList, s)
-			statusListByID[s.ID] = s
-			statusListByName[s.Name] = s
-		}
-
-		log.Printf("Retrieved %d Lnl_BadgeStatus records", len(statusList))
-
-		items, err = cl.GetInstancesWithProgress("Lnl_BadgeType", "")
-		if err != nil {
-			log.Printf("skipping Lnl_BadgeType: %v", err)
-		}
-
-		typeList := make([]*model.BadgeType, 0)
-		typeListByID := make(map[int32]*model.BadgeType)
-		typeListByName := make(map[string]*model.BadgeType)
-		for _, props := range items {
-			t, err := model.NewBadgeTypeFromJSON(props)
-			if err != nil {
-				log.Printf("skipping Lnl_BadgeType: %v", err)
-				continue
-			}
-
-			typeList = append(typeList, t)
-			typeListByID[t.ID] = t
-			typeListByName[t.Name] = t
-		}
-
-		log.Printf("Retrieved %d Lnl_BadgeType records", len(typeList))
-
-		items, err = cl.GetInstancesWithProgress("Lnl_AccessLevel", "")
-		if err != nil {
-			log.Printf("skipping Lnl_AccessLevel: %v", err)
-		}
-
-		levelList := make([]*model.AccessLevel, 0)
-		levelListByID := make(map[int32]*model.AccessLevel)
-		levelListByName := make(map[string]*model.AccessLevel)
-		for _, props := range items {
-			l, err := model.NewAccessLevelFromJSON(props)
-			if err != nil {
-				log.Printf("skipping Lnl_AccessLevel: %v", err)
-				continue
-			}
-
-			levelList = append(levelList, l)
-			levelListByID[l.ID] = l
-			levelListByName[l.Name] = l
-		}
-
-		log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(typeList))
 
 		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
+		}
+
+		if err := cache.ValidateAccessRecords(csvRecords); err != nil {
+			log.Fatalf("CSV validation failed: %v", err)
 		}
 
 		csvBadges := make([]*model.Badge, 0, len(csvRecords))
@@ -144,19 +86,17 @@ func main() {
 				continue
 			}
 
-			badgeStatus, ok := statusListByName[r.Status]
+			badgeStatus, ok := cache.GetBadgeStatusByName(r.Status)
 			if !ok {
 				log.Printf("skipping CSV badge: unknown status %s", r.Status)
 				continue
 			}
 
-			badgeType, ok := typeListByName[r.BadgeType]
+			badgeType, ok := cache.GetBadgeTypeByName(r.BadgeType)
 			if !ok {
 				log.Printf("skipping CSV badge: unknown type %s", r.BadgeType)
 				continue
 			}
-
-			//log.Printf("Processing CSV badge: ID=%d, Status=%s, Type=%s", id, r.Status, r.BadgeType)
 
 			b, err := model.NewBadge(
 				int64(id),
