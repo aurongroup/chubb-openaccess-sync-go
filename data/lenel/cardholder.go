@@ -7,14 +7,14 @@ type CardholderCache struct {
 	byID map[int32]*model.Cardholder
 }
 
-func newCardholderCache() CardholderCache {
+func NewCardholderCache() CardholderCache {
 	return CardholderCache{
 		byID: make(map[int32]*model.Cardholder),
 	}
 }
 
 // FIXME
-//func (c *CardholderCache) fill(cl *client.Client) error {
+//func (c *CardholderCache) Fill(cl *client.Client) error {
 //	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", "")
 //	if err != nil {
 //		return err

@@ -10,9 +10,9 @@ import (
 // suitable for unit-testing methods that only access the in-memory maps.
 func newTestCache() *DataCache {
 	return &DataCache{
-		statuses:     newBadgeStatusCache(),
-		badgeTypes:   newBadgeTypeCache(),
-		accessLevels: newAccessLevelCache(),
+		statuses:     NewBadgeStatusCache(),
+		badgeTypes:   NewBadgeTypeCache(),
+		accessLevels: NewAccessLevelCache(),
 	}
 }
 

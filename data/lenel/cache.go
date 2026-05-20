@@ -23,12 +23,12 @@ type DataCache struct {
 func NewDataCache(cl *client.Client) *DataCache {
 	return &DataCache{
 		client:       cl,
-		statuses:     newBadgeStatusCache(),
-		badgeTypes:   newBadgeTypeCache(),
-		accessLevels: newAccessLevelCache(),
-		badges:       newBadgeCache(),
-		cardholders:  newCardholderCache(),
-		assignments:  newAssignmentCache(),
+		statuses:     NewBadgeStatusCache(),
+		badgeTypes:   NewBadgeTypeCache(),
+		accessLevels: NewAccessLevelCache(),
+		badges:       NewBadgeCache(),
+		cardholders:  NewCardholderCache(),
+		assignments:  NewAssignmentCache(),
 	}
 }
 
@@ -102,30 +102,30 @@ func (c *DataCache) GetCardholders() []*model.Cardholder {
 // References (status, type, cardholder on badges; badge and access level on
 // assignments) are resolved against already-populated maps.
 func (c *DataCache) Fill() error {
-	if err := c.accessLevels.fill(c.client); err != nil {
+	if err := c.accessLevels.Fill(c.client); err != nil {
 		return err
 	}
 
-	if err := c.statuses.fill(c.client); err != nil {
+	if err := c.statuses.Fill(c.client); err != nil {
 		return err
 	}
 
-	if err := c.badgeTypes.fill(c.client); err != nil {
+	if err := c.badgeTypes.Fill(c.client); err != nil {
 		return err
 	}
 
 	// FIXME
-	//if err := c.cardholders.fill(c.client); err != nil {
+	//if err := c.cardholders.Fill(c.client); err != nil {
 	//	return err
 	//}
 
 	// FIXME: badges and assignments require cardholders and access levels to be
 	// filled first; badge fill also needs IDCache resolution.
-	//if err := c.badges.fill(c.client, c); err != nil {
+	//if err := c.badges.Fill(c.client, c); err != nil {
 	//	return err
 	//}
 	//
-	//if err := c.assignments.fill(c.client, c); err != nil {
+	//if err := c.assignments.Fill(c.client, c); err != nil {
 	//	return err
 	//}
 

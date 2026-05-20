@@ -11,14 +11,14 @@ type AccessLevelCache struct {
 	byName map[string]*model.AccessLevel
 }
 
-func newAccessLevelCache() AccessLevelCache {
+func NewAccessLevelCache() AccessLevelCache {
 	return AccessLevelCache{
 		byID:   make(map[int32]*model.AccessLevel),
 		byName: make(map[string]*model.AccessLevel),
 	}
 }
 
-func (c *AccessLevelCache) fill(cl *client.Client) error {
+func (c *AccessLevelCache) Fill(cl *client.Client) error {
 	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_AccessLevel",
 		model.NewAccessLevelFromJSON,
 		func(al *model.AccessLevel) int32 { return al.ID },

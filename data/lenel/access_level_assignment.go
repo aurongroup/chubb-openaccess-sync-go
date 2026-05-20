@@ -9,14 +9,14 @@ type AssignmentCache struct {
 	byBadgeKey map[int64][]*model.AccessLevel
 }
 
-func newAssignmentCache() AssignmentCache {
+func NewAssignmentCache() AssignmentCache {
 	return AssignmentCache{
 		byBadgeKey: make(map[int64][]*model.AccessLevel),
 	}
 }
 
 // FIXME
-//func (c *AssignmentCache) fill(cl *client.Client, cache model.IDCache) error {
+//func (c *AssignmentCache) Fill(cl *client.Client, cache model.IDCache) error {
 //	items, err := cl.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
 //	if err != nil {
 //		return err

@@ -8,7 +8,7 @@ type BadgeCache struct {
 	byKey map[int64]*model.Badge
 }
 
-func newBadgeCache() BadgeCache {
+func NewBadgeCache() BadgeCache {
 	return BadgeCache{
 		byID:  make(map[int32]*model.Badge),
 		byKey: make(map[int64]*model.Badge),
@@ -16,7 +16,7 @@ func newBadgeCache() BadgeCache {
 }
 
 // FIXME
-//func (c *BadgeCache) fill(cl *client.Client, cache model.IDCache) error {
+//func (c *BadgeCache) Fill(cl *client.Client, cache model.IDCache) error {
 //	items, err := cl.GetInstancesWithProgress("Lnl_Badge", "")
 //	if err != nil {
 //		return err

@@ -11,14 +11,14 @@ type BadgeStatusCache struct {
 	byName map[string]*model.BadgeStatus
 }
 
-func newBadgeStatusCache() BadgeStatusCache {
+func NewBadgeStatusCache() BadgeStatusCache {
 	return BadgeStatusCache{
 		byID:   make(map[int32]*model.BadgeStatus),
 		byName: make(map[string]*model.BadgeStatus),
 	}
 }
 
-func (c *BadgeStatusCache) fill(cl *client.Client) error {
+func (c *BadgeStatusCache) Fill(cl *client.Client) error {
 	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_BadgeStatus",
 		model.NewBadgeStatusFromJSON,
 		func(s *model.BadgeStatus) int32 { return s.ID },
