@@ -4,6 +4,7 @@ import (
 	ecsv "encoding/csv"
 	"io"
 	"log"
+	datacsv "openaccess-sync/data/csv"
 	"openaccess-sync/data/model"
 	"openaccess-sync/util/date"
 	"os"
@@ -11,7 +12,7 @@ import (
 )
 
 // ParseCSV reads a pipe-delimited access record CSV from path.
-func ParseCSV(path string) ([]*model.AccessRecord, error) {
+func ParseCSV(path string) (*datacsv.AccessRecordCache, error) {
 	log.Printf("Parsing access records from file: %s", path)
 
 	f, err := os.Open(path)
@@ -35,7 +36,7 @@ func ParseCSV(path string) ([]*model.AccessRecord, error) {
 		col[strings.TrimSpace(h)] = i
 	}
 
-	var records []*model.AccessRecord
+	arc := datacsv.NewAccessRecordCache()
 	for {
 		row, err := cr.Read()
 
@@ -52,11 +53,11 @@ func ParseCSV(path string) ([]*model.AccessRecord, error) {
 			return nil, err
 		}
 
-		records = append(records, r)
+		arc.Add(r)
 	}
 
-	log.Printf("Total CSV access records: %d", len(records))
-	return records, nil
+	log.Printf("Total CSV access records: %d", len(arc.Records()))
+	return arc, nil
 }
 
 func mapRowToAccessRecord(row []string, col map[string]int) (*model.AccessRecord, error) {

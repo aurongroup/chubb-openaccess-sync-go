@@ -14,8 +14,8 @@ func TestParseCSV_shouldParseAllRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(records) != 2 {
-		t.Errorf("expected 2 records, got %d", len(records))
+	if len(records.Records()) != 2 {
+		t.Errorf("expected 2 records, got %d", len(records.Records()))
 	}
 }
 
@@ -25,7 +25,7 @@ func TestParseCSV_shouldParseFirstRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := records[0]
+	r := records.Records()[0]
 
 	assertStr(t, "SSNO", "8274", r.SSNO)
 	assertStr(t, "First", "BOB", r.First)
@@ -49,7 +49,7 @@ func TestParseCSV_shouldHandleEmptyAccessLevels(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := records[1]
+	r := records.Records()[1]
 
 	assertStr(t, "SSNO", "1234", r.SSNO)
 	assertStr(t, "First", "Tim", r.First)
@@ -151,16 +151,17 @@ func TestPrintCSVReport_shouldWriteReadableCSV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(records) != 2 {
-		t.Fatalf("expected 2 records, got %d", len(records))
+	recs := records.Records()
+	if len(recs) != 2 {
+		t.Fatalf("expected 2 records, got %d", len(recs))
 	}
-	assertStr(t, "r1.SSNO", "8274", records[0].SSNO)
-	assertStr(t, "r1.Last", "BROWN", records[0].Last)
-	assertStr(t, "r1.AccLvl1", "Coffee Fresh", records[0].AccLvl1)
-	assertStr(t, "r1.AccLvl2", "OTIS", records[0].AccLvl2)
-	assertDate(t, "r1.Activate", activate, records[0].Activate)
-	assertStr(t, "r2.SSNO", "1234", records[1].SSNO)
-	assertStr(t, "r2.AccLvl1", "DALKIA", records[1].AccLvl1)
+	assertStr(t, "r1.SSNO", "8274", recs[0].SSNO)
+	assertStr(t, "r1.Last", "BROWN", recs[0].Last)
+	assertStr(t, "r1.AccLvl1", "Coffee Fresh", recs[0].AccLvl1)
+	assertStr(t, "r1.AccLvl2", "OTIS", recs[0].AccLvl2)
+	assertDate(t, "r1.Activate", activate, recs[0].Activate)
+	assertStr(t, "r2.SSNO", "1234", recs[1].SSNO)
+	assertStr(t, "r2.AccLvl1", "DALKIA", recs[1].AccLvl1)
 }
 
 func TestPrintCSVReport_shouldWriteCorrectHeader(t *testing.T) {

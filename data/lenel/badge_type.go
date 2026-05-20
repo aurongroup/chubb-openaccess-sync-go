@@ -1,8 +1,10 @@
 package lenel
 
 import (
+	"fmt"
 	"openaccess-sync/client"
 	"openaccess-sync/data/model"
+	"strings"
 )
 
 type BadgeTypeCache struct {
@@ -28,5 +30,21 @@ func (c *BadgeTypeCache) Fill(cl *client.Client) error {
 		return err
 	}
 	c.list, c.byID, c.byName = list, byID, byKey
+	return nil
+}
+
+func (c *BadgeTypeCache) Validate(values []string) error {
+	failures := make([]string, 0, len(values))
+
+	for _, name := range values {
+		if _, ok := c.byName[name]; !ok {
+			failures = append(failures, name)
+		}
+	}
+
+	if len(failures) > 0 {
+		return fmt.Errorf("badge types not found in Lenel: %s", strings.Join(failures, ","))
+	}
+
 	return nil
 }

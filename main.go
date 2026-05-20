@@ -82,14 +82,25 @@ func main() {
 		//	log.Fatalf("Operation failed: %v", err)
 		//}
 
-		csvRecords, err := ParseCSV(cfg.File)
+		csvCache, err := ParseCSV(cfg.File)
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
 		}
 
-		if err := cache.ValidateAccessRecords(csvRecords); err != nil {
-			log.Fatalf("CSV validation failed: %v", err)
+		if err := bsc.Validate(csvCache.BadgeStatusNames()); err != nil {
+			log.Fatalf("Fatal data mismatch: %v", err)
 		}
+
+		if err := btc.Validate(csvCache.BadgeTypeNames()); err != nil {
+			log.Fatalf("Fatal data mismatch: %v", err)
+		}
+
+		if err := alc.Validate(csvCache.AccessLevelNames()); err != nil {
+			log.Fatalf("Fatal data mismatch: %v", err)
+		}
+		//if err := cache.ValidateAccessRecords(csvCache.Records()); err != nil {
+		//	log.Fatalf("CSV validation failed: %v", err)
+		//}
 
 		// -- SNIP --
 		//csvBadges := make([]*model.Badge, 0, len(csvRecords))
