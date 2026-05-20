@@ -98,21 +98,48 @@ func main() {
 			log.Fatalf("Fatal data mismatch: %v", err)
 		}
 
-		// Cleanup Cardholders that don't have badges
+		// 3. Cleanup Cardholders that don't have badges
 		chc := lenel.NewCardholderCache()
 		if err := chc.FillDetached(cl); err != nil {
-			log.Fatalf("Cardholder cache fill failed: %v", err)
+			log.Fatalf("Detached Cardholder cache fill failed: %v", err)
 		}
 
 		for _, ch := range chc.GetItems() {
 			log.Printf("Deleting detached cardholder with ID %d", ch.ID)
 			err := cl.DeleteInstance("Lnl_Cardholder", map[string]interface{}{"ID": ch.ID})
 			if err != nil {
-				log.Printf("->  to delete cardholder with ID %d: %v", ch.ID, err)
+				log.Printf("-> failed to delete cardholder with ID %d: %v", ch.ID, err)
 			}
 		}
 
-		// Remove Cardholders that don't have an SSNO and are duplicates
+		// 4. Remove Cardholders that don't have an SSNO and are duplicates.
+		//    WARNING - this is a DESTRUCTIVE action because we are unable to transfer badges
+		//              from duplicate cardholders
+		chc = lenel.NewCardholderCache()
+		if err := chc.FillNoSSNO(cl); err != nil {
+			log.Fatalf("No SSNO Cardholder cache fill failed: %v", err)
+		}
+
+		duplicates := chc.GetDuplicates()
+		for k, chs := range duplicates {
+			log.Printf("Processing duplicates for %s (%d)\n", k, chs[0].ID)
+			for _, ch := range chs[1:] {
+				// Grab assigned badges for duplicate
+				bc := lenel.NewBadgeCache()
+				bc.Fill()
+				// For each badge, grab access levels
+				// Delete badge
+				// Create new badge against primary
+				// Add access levels to new badge
+				// Delete duplicate
+
+				log.Printf("-> Deleting duplicate cardholder with ID %d", ch.ID)
+				//err := cl.DeleteInstance("Lnl_Cardholder", map[string]interface{}{"ID": ch.ID})
+				//if err != nil {
+				//	log.Printf("-> failed to delete cardholder with ID %d: %v", ch.ID, err)
+				//}
+			}
+		}
 
 		// 3. Retrieve Cardholders from Lenel that have a NULL SSNO so we can clean up duplicates
 		//chc := lenel.NewCardholderCache()

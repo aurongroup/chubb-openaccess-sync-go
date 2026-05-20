@@ -15,8 +15,9 @@ type CardholderCache struct {
 
 func NewCardholderCache() CardholderCache {
 	return CardholderCache{
-		byID:  make(map[int32]*model.Cardholder),
-		byKey: make(map[string]*model.Cardholder),
+		byID:       make(map[int32]*model.Cardholder),
+		byKey:      make(map[string]*model.Cardholder),
+		duplicates: make(map[string][]*model.Cardholder),
 	}
 }
 
@@ -24,18 +25,9 @@ func (c *CardholderCache) GetItems() []*model.Cardholder {
 	return c.list
 }
 
-//func (c *CardholderCache) Fill(cl *client.Client) error {
-//	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_Cardholder",
-//		model.NewCardholderFromJSON,
-//		func(ch *model.Cardholder) int32 { return ch.ID },
-//		func(ch *model.Cardholder) string { return ch.GetKey() },
-//	)
-//	if err != nil {
-//		return err
-//	}
-//	c.list, c.byID, c.byKey = list, byID, byKey
-//	return nil
-//}
+func (c *CardholderCache) GetDuplicates() map[string][]*model.Cardholder {
+	return c.duplicates
+}
 
 func (c *CardholderCache) Fill(cl *client.Client) error {
 	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", "")
@@ -50,17 +42,6 @@ func (c *CardholderCache) Fill(cl *client.Client) error {
 			continue
 		}
 
-		// For cardholders without an SSNO, we might not have a unique key
-		if original, ok := c.byKey[ch.GetKey()]; ok {
-			if _, ok := c.duplicates[ch.GetKey()]; !ok {
-				c.duplicates[ch.GetKey()] = []*model.Cardholder{}
-				c.duplicates[ch.GetKey()] = append(c.duplicates[ch.GetKey()], original)
-			}
-
-			c.duplicates[ch.GetKey()] = append(c.duplicates[ch.GetKey()], ch)
-			log.Printf("skipping Lnl_Cardholder: duplicate key %s: %d", ch.GetKey(), ch.ID)
-			continue
-		}
 		c.list = append(c.list, ch)
 		c.byID[ch.ID] = ch
 		c.byKey[ch.GetKey()] = ch
@@ -90,7 +71,7 @@ func (c *CardholderCache) FillDetached(cl *client.Client) error {
 	return nil
 }
 
-func (c *CardholderCache) FillSSNO(cl *client.Client) error {
+func (c *CardholderCache) FillNoSSNO(cl *client.Client) error {
 	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", "SSNO=null")
 	if err != nil {
 		return err
@@ -111,7 +92,7 @@ func (c *CardholderCache) FillSSNO(cl *client.Client) error {
 			}
 
 			c.duplicates[ch.GetKey()] = append(c.duplicates[ch.GetKey()], ch)
-			log.Printf("skipping Lnl_Cardholder: duplicate key %s: %d", ch.GetKey(), ch.ID)
+			//log.Printf("skipping Lnl_Cardholder: duplicate key %s: %d", ch.GetKey(), ch.ID)
 			continue
 		}
 		c.list = append(c.list, ch)
