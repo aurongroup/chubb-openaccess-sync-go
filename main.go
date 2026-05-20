@@ -52,6 +52,19 @@ func main() {
 		}
 
 	case config.ModeSync:
+		/*
+			1. Retrieve status, type, and access levels
+			2. Parse CSV and validate status, type, and access levels - fail if missing
+			3. Retrieve cardholders
+			4. Process cardholders - remove missing, update first/last as required (only for those with SSNO), add new
+			5. Retrieve and re-validate (?) cardholders
+			6. Retrieve badges
+			7. Process badges - remove missing, update activate/deactivate as required, add new
+			8. Retrieve and re-validate (?) badges
+			9. Retrieve access level assignments
+			10. Process access level assignments - remove missing, update as required, add new (sort by access level name)
+		*/
+
 		items, err := cl.GetInstancesWithProgress("Lnl_BadgeStatus", "")
 		if err != nil {
 			log.Fatalf("Operation failed: %v", err)
@@ -95,6 +108,28 @@ func main() {
 		}
 
 		log.Printf("Retrieved %d Lnl_BadgeType records", len(typeList))
+
+		items, err = cl.GetInstancesWithProgress("Lnl_AccessLevel", "")
+		if err != nil {
+			log.Printf("skipping Lnl_AccessLevel: %v", err)
+		}
+
+		levelList := make([]*model.AccessLevel, 0)
+		levelListByID := make(map[int32]*model.AccessLevel)
+		levelListByName := make(map[string]*model.AccessLevel)
+		for _, props := range items {
+			l, err := model.NewAccessLevelFromJSON(props)
+			if err != nil {
+				log.Printf("skipping Lnl_AccessLevel: %v", err)
+				continue
+			}
+
+			levelList = append(levelList, l)
+			levelListByID[l.ID] = l
+			levelListByName[l.Name] = l
+		}
+
+		log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(typeList))
 
 		csvRecords, err := ParseCSV(cfg.File)
 		if err != nil {
@@ -179,24 +214,6 @@ func main() {
 				// Compare if the same, update if necessary
 			}
 		}
-
-		// Remove all badges that are not in the CSV
-		// Remove all cardholders that are not in the CSV
-		// Update all cardholders with SSNOs that are in the CSV
-		// Add all cardholders that are in the CSV but not in Lenel (squash duplicates)
-		// Add all badges that are in the CSV but not in Lenel
-		// Update all access level assignments for badges
-
-		// 1. Pull data from Lenel
-		// 2. Load data from CSV
-		// 3. Update cardholders
-		// - 3.1 Add cardholders to Lenel that are in CSV but not in Lenel
-		// - 3.2 Update cardholders in Lenel using CSV data
-		// - 3.3 Delete cardholders from Lenel that are not in CSV
-		// 4. Update badges in Lenel using CSV data
-		// - 7.1 Update activate/deactivate, type, status
-		// - 7.2 Update access levels
-		// - 7.3 Delete badges from Lenel that are not in CSV
 
 		//arc := csv.BuildAccessRecordCache(cache)
 
