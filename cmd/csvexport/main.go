@@ -2,10 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/config"
+	"openaccess-sync/pkg/csv"
 	"openaccess-sync/pkg/data/lenel"
+	"openaccess-sync/pkg/data/model"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -50,16 +53,40 @@ func main() {
 		log.Fatalf("Access level cache fill failed: %v", err)
 	}
 
-	//cache := lenel.NewDataCache(cl)
+	bc := lenel.NewBadgeCache()
+	if err := bc.Fill(cl); err != nil {
+		log.Fatalf("Badge cache fill failed: %v", err)
+	}
 
-	//if err := cache.Fill(); err != nil {
-	//	log.Fatalf("Failed to load API data: %v", err)
-	//}
+	records := make([]*model.AccessRecord, 0, len(bc.GetItems()))
+	for _, badge := range bc.GetItems() {
+		r, err := model.NewAccessRecord(
+			"ssno",
+			"first",
+			"last",
+			"accLvl1",
+			"accLvl2",
+			"accLvl3",
+			"accLvl4",
+			"accLvl5",
+			"accLvl6",
+			fmt.Sprintf("%d", badge.ID),
+			nil,        // activate,
+			nil,        //deactivate *time.Time,
+			"active",   // status,
+			"employee", //badgeType string,
+		)
 
-	//arc := csv.BuildAccessRecordCache(cache)
-	//
-	//err = csv.Write(arc.Records(), cfg.File)
-	//if err != nil {
-	//	log.Fatalf("Operation failed: %v", err)
-	//}
+		if err != nil {
+			log.Printf("Failed to create access record for badge ID %d: %v", badge.ID, err)
+			continue
+		}
+
+		records = append(records, r)
+	}
+
+	err = csv.Write(records, cfg.File)
+	if err != nil {
+		log.Fatalf("Operation failed: %v", err)
+	}
 }
