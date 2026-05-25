@@ -1,11 +1,37 @@
-BINARY    := openaccess-sync
-GO        := go
-LDFLAGS   := -ldflags="-s -w"
+CSVEXPORT_BINARY    	:= cmd/csvexport/csvexport
+FULLEXPORT_BINARY		:= cmd/fullexport/fullexport
+SYNC_BINARY				:= cmd/sync/sync
+MIGRATE_BINARY			:= cmd/migrate/migrate
+GO        				:= go
+LDFLAGS   				:= -ldflags="-s -w"
 
 .PHONY: build build-debug build-windows build-windows-debug test clean tidy vet
 
-build:
-	$(GO) build $(LDFLAGS) -o $(BINARY) .
+build: build-csvexport build-fullexport build-sync build-migrate
+
+build-csvexport:
+	$(GO) build $(LDFLAGS) -o $(CSVEXPORT_BINARY) cmd/csvexport/main.go
+
+clean-csvexport:
+	rm -f $(CSVEXPORT_BINARY)
+
+build-fullexport:
+	$(GO) build $(LDFLAGS) -o $(FULLEXPORT_BINARY) cmd/fullexport/main.go
+
+clean-fullexport:
+	rm -f $(FULLEXPORT_BINARY)
+
+build-sync:
+	$(GO) build $(LDFLAGS) -o $(SYNC_BINARY) cmd/sync/main.go
+
+clean-sync:
+	rm -f $(SYNC_BINARY)
+
+build-migrate:
+	$(GO) build $(LDFLAGS) -o $(MIGRATE_BINARY) cmd/migrate/main.go
+
+clean-migrate:
+	rm -f $(MIGRATE_BINARY)
 
 build-debug:
 	$(GO) build -o $(BINARY) .
@@ -19,9 +45,7 @@ build-windows-debug:
 test:
 	$(GO) test ./... -v
 
-clean:
-	$(GO) clean
-	rm -f $(BINARY) $(BINARY).exe
+clean: clean-csvexport clean-fullexport clean-sync clean-migrate
 
 tidy:
 	$(GO) mod tidy

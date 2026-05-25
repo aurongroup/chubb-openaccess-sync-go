@@ -6,3 +6,11 @@ diff.txt
 *.csv
 *.xlsx
 .idea/
+
+cmd/csvexport/csvexport
+
+cmd/fullexport/fullexport
+
+cmd/migrate/migrate
+
+cmd/sync/sync
