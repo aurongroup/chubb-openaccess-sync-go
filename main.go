@@ -36,6 +36,7 @@ func main() {
 	}()
 
 	cache := lenel.NewDataCache(cl)
+
 	//if err := cache.Fill(); err != nil {
 	//	log.Fatalf("Failed to load API data: %v", err)
 	//}
@@ -97,6 +98,10 @@ func main() {
 		if err := alc.Validate(csvCache.AccessLevelNames()); err != nil {
 			log.Fatalf("Fatal data mismatch: %v", err)
 		}
+
+	case config.ModeCleanup:
+		log.Println("cleanup not yet implemented")
+		break
 
 		// 3. Cleanup Cardholders that don't have badges
 		chc := lenel.NewCardholderCache()
@@ -285,9 +290,6 @@ func main() {
 		//		log.Printf("ssno=%s badgeId=%s", r.SSNO, r.BadgeID)
 		//	}
 		//}
-
-	case config.ModeCleanup:
-		log.Println("cleanup not yet implemented")
 
 	case config.ModeFullExport:
 		err = ExportXLSX(cache, cfg.File)
