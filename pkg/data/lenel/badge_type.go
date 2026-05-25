@@ -20,6 +20,20 @@ func NewBadgeTypeCache() BadgeTypeCache {
 	}
 }
 
+func (c *BadgeTypeCache) GetItems() []*model.BadgeType {
+	return c.list
+}
+
+func (c *BadgeTypeCache) GetByID(id int32) *model.BadgeType {
+	bt, ok := c.byID[id]
+
+	if ok {
+		return bt
+	}
+
+	return nil
+}
+
 func (c *BadgeTypeCache) Fill(cl *client.Client) error {
 	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_BadgeType",
 		model.NewBadgeTypeFromJSON,

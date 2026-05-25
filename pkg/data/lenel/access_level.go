@@ -20,6 +20,20 @@ func NewAccessLevelCache() AccessLevelCache {
 	}
 }
 
+func (c *AccessLevelCache) GetItems() []*model.AccessLevel {
+	return c.list
+}
+
+func (c *AccessLevelCache) GetByID(id int32) *model.AccessLevel {
+	al, ok := c.byID[id]
+
+	if ok {
+		return al
+	}
+
+	return nil
+}
+
 func (c *AccessLevelCache) Fill(cl *client.Client) error {
 	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_AccessLevel",
 		model.NewAccessLevelFromJSON,

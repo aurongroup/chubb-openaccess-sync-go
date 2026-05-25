@@ -25,6 +25,16 @@ func (c *CardholderCache) GetItems() []*model.Cardholder {
 	return c.list
 }
 
+func (c *CardholderCache) GetByID(id int32) *model.Cardholder {
+	ch, ok := c.byID[id]
+
+	if ok {
+		return ch
+	}
+
+	return nil
+}
+
 func (c *CardholderCache) GetDuplicates() map[string][]*model.Cardholder {
 	return c.duplicates
 }
