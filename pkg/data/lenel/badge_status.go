@@ -34,6 +34,16 @@ func (c *BadgeStatusCache) GetByID(id int32) *model.BadgeStatus {
 	return nil
 }
 
+func (c *BadgeStatusCache) GetByName(name string) *model.BadgeStatus {
+	bs, ok := c.byName[name]
+
+	if ok {
+		return bs
+	}
+
+	return nil
+}
+
 func (c *BadgeStatusCache) Fill(cl *client.Client) error {
 	list, byID, byKey, err := fetchAndIndex(cl, "Lnl_BadgeStatus",
 		model.NewBadgeStatusFromJSON,

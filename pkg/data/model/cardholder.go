@@ -2,10 +2,7 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	"openaccess-sync/pkg/util/json"
-	stru "openaccess-sync/pkg/util/strings"
-	"strings"
 )
 
 var (
@@ -14,26 +11,11 @@ var (
 
 // Cardholder represents a cardholder from the OpenAccess API.
 type Cardholder struct {
-	ID        int32
-	FirstName string
-	LastName  string
-	SSNO      string
-	key       string
-}
-
-func (c *Cardholder) GetKey() string {
-	if c.key != "" {
-		return c.key
-	}
-
-	if c.SSNO != "" {
-		c.key = c.SSNO
-	} else {
-		// Do our best to construct a unique key
-		c.key = strings.ToUpper(stru.Clean(fmt.Sprintf("%s%s", c.FirstName, c.LastName)))
-	}
-
-	return c.key
+	ID          int32
+	FirstName   string
+	LastName    string
+	SSNO        string
+	OfficePhone string
 }
 
 func NewCardholder(id int32, ssno, firstName, lastName string) (*Cardholder, error) {

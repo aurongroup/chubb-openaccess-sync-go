@@ -1,7 +1,6 @@
 package lenel
 
 import (
-	"fmt"
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/data/model"
@@ -29,8 +28,12 @@ func (c *AssignmentCache) GetItemsByBadgeKey(key int32) []*model.AccessLevelAssi
 	return []*model.AccessLevelAssignment{}
 }
 
-func (c *AssignmentCache) FillForBadge(cl *client.Client, b *model.Badge) error {
-	items, err := cl.GetInstancesWithProgress("Lnl_AccessLevelAssignment", fmt.Sprintf("BADGEKEY=%d", b.Key))
+func (c *AssignmentCache) Fill(cl *client.Client) error {
+	return c.FillWithFilter(cl, "")
+}
+
+func (c *AssignmentCache) FillWithFilter(cl *client.Client, filter string) error {
+	items, err := cl.GetInstancesWithProgress("Lnl_AccessLevelAssignment", filter)
 	if err != nil {
 		return err
 	}
@@ -63,28 +66,4 @@ func NewAssignmentCache() AssignmentCache {
 		byAccessLevel: make(map[int32][]*model.AccessLevelAssignment),
 		byBadgeKey:    make(map[int32][]*model.AccessLevelAssignment),
 	}
-}
-
-func (c *AssignmentCache) Fill(cl *client.Client) error {
-	items, err := cl.GetInstancesWithProgress("Lnl_AccessLevelAssignment", "")
-	if err != nil {
-		return err
-	}
-
-	for _, props := range items {
-		a, err := model.NewAccessLevelAssignmentFromJSON(props)
-		if err != nil {
-			log.Printf("skipping Lnl_AccessLevelAssignment: %v", err)
-			continue
-		}
-
-		c.list = append(c.list, a)
-
-		if _, ok := c.byBadgeKey[a.BadgeKey]; !ok {
-			c.byBadgeKey[a.BadgeKey] = []*model.AccessLevelAssignment{}
-		}
-		c.byBadgeKey[a.BadgeKey] = append(c.byBadgeKey[a.BadgeKey], a)
-	}
-	log.Printf("Retrieved %d Lnl_AccessLevelAssignment records", len(c.list))
-	return nil
 }

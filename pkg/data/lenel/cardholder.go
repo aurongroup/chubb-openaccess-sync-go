@@ -7,17 +7,13 @@ import (
 )
 
 type CardholderCache struct {
-	list       []*model.Cardholder
-	byID       map[int32]*model.Cardholder
-	byKey      map[string]*model.Cardholder
-	duplicates map[string][]*model.Cardholder
+	list []*model.Cardholder
+	byID map[int32]*model.Cardholder
 }
 
 func NewCardholderCache() CardholderCache {
 	return CardholderCache{
-		byID:       make(map[int32]*model.Cardholder),
-		byKey:      make(map[string]*model.Cardholder),
-		duplicates: make(map[string][]*model.Cardholder),
+		byID: make(map[int32]*model.Cardholder),
 	}
 }
 
@@ -35,12 +31,12 @@ func (c *CardholderCache) GetByID(id int32) *model.Cardholder {
 	return nil
 }
 
-func (c *CardholderCache) GetDuplicates() map[string][]*model.Cardholder {
-	return c.duplicates
+func (c *CardholderCache) Fill(cl *client.Client) error {
+	return c.FillWithFilter(cl, "")
 }
 
-func (c *CardholderCache) Fill(cl *client.Client) error {
-	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", "")
+func (c *CardholderCache) FillWithFilter(cl *client.Client, filter string) error {
+	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", filter)
 	if err != nil {
 		return err
 	}
@@ -54,7 +50,6 @@ func (c *CardholderCache) Fill(cl *client.Client) error {
 
 		c.list = append(c.list, ch)
 		c.byID[ch.ID] = ch
-		c.byKey[ch.GetKey()] = ch
 	}
 	log.Printf("Retrieved %d Lnl_Cardholder records", len(c.list))
 	return nil
@@ -75,40 +70,48 @@ func (c *CardholderCache) FillDetached(cl *client.Client) error {
 
 		c.list = append(c.list, ch)
 		c.byID[ch.ID] = ch
-		c.byKey[ch.GetKey()] = ch
 	}
 	log.Printf("Retrieved %d Lnl_Cardholder detached records", len(c.list))
 	return nil
 }
 
-func (c *CardholderCache) FillNoSSNO(cl *client.Client) error {
-	items, err := cl.GetInstancesWithProgress("Lnl_Cardholder", "SSNO=null")
+func (c *CardholderCache) Create(cl *client.Client, ch *model.Cardholder) (int32, error) {
+	id, err := cl.CreateInstance(
+		"Lnl_Cardholder",
+		map[string]interface{}{
+			"FIRSTNAME": ch.FirstName,
+			"LASTNAME":  ch.LastName,
+			"SSNO":      ch.SSNO,
+		},
+	)
+
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	for _, props := range items {
-		ch, err := model.NewCardholderFromJSON(props)
-		if err != nil {
-			log.Printf("skipping Lnl_Cardholder: %v", err)
-			continue
-		}
+	ch.ID = id
 
-		// For cardholders without an SSNO, we might not have a unique key
-		if original, ok := c.byKey[ch.GetKey()]; ok {
-			if _, ok := c.duplicates[ch.GetKey()]; !ok {
-				c.duplicates[ch.GetKey()] = []*model.Cardholder{}
-				c.duplicates[ch.GetKey()] = append(c.duplicates[ch.GetKey()], original)
-			}
+	return id, nil
+}
 
-			c.duplicates[ch.GetKey()] = append(c.duplicates[ch.GetKey()], ch)
-			//log.Printf("skipping Lnl_Cardholder: duplicate key %s: %d", ch.GetKey(), ch.ID)
-			continue
-		}
-		c.list = append(c.list, ch)
-		c.byID[ch.ID] = ch
-		c.byKey[ch.GetKey()] = ch
-	}
-	log.Printf("Retrieved %d Lnl_Cardholder records", len(c.list))
-	return nil
+func (c *CardholderCache) Update(cl *client.Client, ch *model.Cardholder) error {
+
+	return cl.UpdateInstance(
+		"Lnl_Cardholder",
+		map[string]interface{}{
+			"ID":        ch.ID,
+			"FIRSTNAME": ch.FirstName,
+			"LASTNAME":  ch.LastName,
+			"SSNO":      ch.SSNO,
+		},
+	)
+}
+
+func (c *CardholderCache) Delete(cl *client.Client, ch *model.Cardholder) error {
+	return cl.DeleteInstance(
+		"Lnl_Cardholder",
+		map[string]interface{}{
+			"ID": ch.ID,
+		},
+	)
 }

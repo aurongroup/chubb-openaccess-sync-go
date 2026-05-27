@@ -46,9 +46,6 @@ type Badge struct {
 	Status     int32
 	Type       int32
 	Cardholder int32
-	//Status     *BadgeStatus
-	//Type       *BadgeType
-	//Cardholder *Cardholder
 }
 
 func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus, badgeType, cardholder int32) (*Badge, error) {
@@ -66,19 +63,6 @@ func NewBadge(id int64, key int32, activate, deactivate *time.Time, badgeStatus,
 		Type:       badgeType,
 		Cardholder: cardholder,
 	}
-
-	// FIXME
-	//if badgeStatus == nil {
-	//	return nil, ErrBadgeUnresolvedStatus
-	//}
-	//b.Status = badgeStatus
-	//
-	//if badgeType == nil {
-	//	return nil, ErrBadgeUnresolvedType
-	//}
-	//b.Type = badgeType
-	//
-	//b.Cardholder = cardholder
 
 	return b, nil
 }
