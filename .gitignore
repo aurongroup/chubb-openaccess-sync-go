@@ -1,5 +1,3 @@
-openaccess-sync
-openaccess-sync.exe
 syncconfig.properties
 diff.txt
 .~lock*
@@ -8,9 +6,7 @@ diff.txt
 .idea/
 
 cmd/csvexport/csvexport
-
 cmd/fullexport/fullexport
-
 cmd/migrate/migrate
-
 cmd/sync/sync
+cmd/testharness/testharness
