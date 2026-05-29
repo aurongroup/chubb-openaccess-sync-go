@@ -1,4 +1,4 @@
-syncconfig.properties
+syncconfig.*properties
 diff.txt
 .~lock*
 *.csv
