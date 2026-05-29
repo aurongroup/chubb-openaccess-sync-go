@@ -10,3 +10,4 @@ cmd/fullexport/fullexport
 cmd/migrate/migrate
 cmd/sync/sync
 cmd/testharness/testharness
+cmd/querytool/querytool

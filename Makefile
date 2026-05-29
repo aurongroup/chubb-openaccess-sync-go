@@ -3,12 +3,13 @@ FULLEXPORT_BINARY		:= cmd/fullexport/fullexport
 SYNC_BINARY				:= cmd/sync/sync
 MIGRATE_BINARY			:= cmd/migrate/migrate
 TESTHARNESS_BINARY		:= cmd/testharness/testharness
+QUERYTOOL_BINARY		:= cmd/querytool/querytool
 GO        				:= go
 LDFLAGS   				:= -ldflags="-s -w"
 
 .PHONY: build build-debug build-windows build-windows-debug test clean tidy vet
 
-build: build-csvexport build-fullexport build-sync build-migrate build-testharness
+build: build-csvexport build-fullexport build-sync build-migrate build-testharness build-querytool
 
 build-csvexport:
 	$(GO) build $(LDFLAGS) -o $(CSVEXPORT_BINARY) cmd/csvexport/main.go
@@ -40,6 +41,12 @@ build-testharness:
 clean-testharness:
 	rm -f $(TESTHARNESS_BINARY)
 
+build-querytool:
+	$(GO) build $(LDFLAGS) -o $(QUERYTOOL_BINARY) cmd/querytool/main.go
+
+clean-querytool:
+	rm -f $(QUERYTOOL_BINARY)
+
 build-debug:
 	$(GO) build -o $(BINARY) .
 
@@ -52,7 +59,7 @@ build-windows-debug:
 test:
 	$(GO) test ./... -v
 
-clean: clean-csvexport clean-fullexport clean-sync clean-migrate clean-testharness
+clean: clean-csvexport clean-fullexport clean-sync clean-migrate clean-testharness clean-querytool
 
 tidy:
 	$(GO) mod tidy
