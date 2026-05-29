@@ -5,9 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,15 +45,54 @@ type store struct {
 	mu        sync.Mutex
 	sessions  map[string]time.Time
 	instances map[string][]map[string]any
-	timeout   time.Duration
+	// fieldIdx[typeName][fieldName][stringifiedValue] -> indices into instances[typeName]
+	fieldIdx map[string]map[string]map[string][]int
+	timeout  time.Duration
 }
 
 func newStore(timeout time.Duration) *store {
 	return &store{
 		sessions:  make(map[string]time.Time),
 		instances: make(map[string][]map[string]any),
+		fieldIdx:  make(map[string]map[string]map[string][]int),
 		timeout:   timeout,
 	}
+}
+
+// rebuildIndex rebuilds the field-value index for the given type from scratch.
+// Must be called with s.mu held.
+func (s *store) rebuildIndex(typeName string) {
+	typeIdx := make(map[string]map[string][]int)
+	for i, item := range s.instances[typeName] {
+		for field, val := range item {
+			key := fmt.Sprintf("%v", val)
+			if typeIdx[field] == nil {
+				typeIdx[field] = make(map[string][]int)
+			}
+			typeIdx[field][key] = append(typeIdx[field][key], i)
+		}
+	}
+	s.fieldIdx[typeName] = typeIdx
+}
+
+// parseFilter parses a SQL-like filter expression of the form:
+//
+//	FIELD = VALUE   FIELD = 'VALUE'   FIELD = null
+//	FIELD != VALUE  FIELD != 'VALUE'  FIELD != null
+func parseFilter(filter string) (field, op, value string, err error) {
+	if i := strings.Index(filter, "!="); i >= 0 {
+		field, op, value = filter[:i], "!=", filter[i+2:]
+	} else if i := strings.Index(filter, "="); i >= 0 {
+		field, op, value = filter[:i], "=", filter[i+1:]
+	} else {
+		return "", "", "", fmt.Errorf("invalid filter %q: expected FIELD = VALUE or FIELD != VALUE", filter)
+	}
+	field = strings.TrimSpace(field)
+	value = strings.TrimSpace(strings.Trim(strings.TrimSpace(value), `"`))
+	if field == "" {
+		return "", "", "", fmt.Errorf("invalid filter %q: empty field name", filter)
+	}
+	return field, op, value, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -183,9 +226,44 @@ func handleInstances(s *store) http.HandlerFunc {
 			typeName := r.URL.Query().Get("type_name")
 			page := queryInt(r, "page_number", 1)
 			size := queryInt(r, "page_size", 10)
+			filter := r.URL.Query().Get("filter")
 
 			s.mu.Lock()
-			all := s.instances[typeName]
+			var all []map[string]any
+			if filter != "" {
+				field, op, value, err := parseFilter(filter)
+				if err != nil {
+					s.mu.Unlock()
+					writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+					return
+				}
+				switch {
+				case op == "=" && value != "null":
+					for _, idx := range s.fieldIdx[typeName][field][value] {
+						all = append(all, s.instances[typeName][idx])
+					}
+				case op == "=" && value == "null":
+					for _, item := range s.instances[typeName] {
+						if v, ok := item[field]; !ok || v == nil {
+							all = append(all, item)
+						}
+					}
+				case op == "!=" && value == "null":
+					for _, item := range s.instances[typeName] {
+						if v, ok := item[field]; ok && v != nil {
+							all = append(all, item)
+						}
+					}
+				default: // op == "!=" && value != "null"
+					for _, item := range s.instances[typeName] {
+						if fmt.Sprintf("%v", item[field]) != value {
+							all = append(all, item)
+						}
+					}
+				}
+			} else {
+				all = s.instances[typeName]
+			}
 			s.mu.Unlock()
 
 			slice, totalPages := paginate(all, page, size)
@@ -212,6 +290,7 @@ func handleInstances(s *store) http.HandlerFunc {
 			s.mu.Lock()
 			s.instances[body.TypeName] = append(s.instances[body.TypeName], body.PropertyMap)
 			id := len(s.instances[body.TypeName])
+			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
 			log.Printf("instances: created %s id=%d", body.TypeName, id)
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -237,6 +316,9 @@ func handleInstances(s *store) http.HandlerFunc {
 					break
 				}
 			}
+			if found {
+				s.rebuildIndex(body.TypeName)
+			}
 			s.mu.Unlock()
 			if !found {
 				writeJSON(w, http.StatusNotFound, map[string]string{"error": "instance not found"})
@@ -261,6 +343,7 @@ func handleInstances(s *store) http.HandlerFunc {
 				}
 			}
 			s.instances[body.TypeName] = filtered
+			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
 			log.Printf("instances: deleted %s id=%v", body.TypeName, targetID)
 			writeJSON(w, http.StatusOK, map[string]any{})
@@ -309,12 +392,45 @@ func handleCardholders(s *store) http.HandlerFunc {
 	}
 }
 
+func loadDataDir(s *store, dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read directory: %w", err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		typeName := strings.TrimSuffix(entry.Name(), ".json")
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			return fmt.Errorf("read %s: %w", entry.Name(), err)
+		}
+		var items []map[string]any
+		if err := json.Unmarshal(data, &items); err != nil {
+			return fmt.Errorf("parse %s: %w", entry.Name(), err)
+		}
+		s.instances[typeName] = items
+		s.rebuildIndex(typeName)
+		log.Printf("loaded %d records for %s", len(items), typeName)
+	}
+	return nil
+}
+
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	sessionTimeout := flag.Duration("session-timeout", 5*time.Minute, "session token lifetime")
 	flag.Parse()
 
+	if flag.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "usage: testharness [flags] <data-dir>")
+		os.Exit(1)
+	}
+
 	s := newStore(*sessionTimeout)
+	if err := loadDataDir(s, flag.Arg(0)); err != nil {
+		log.Fatalf("failed to load data directory: %v", err)
+	}
 
 	http.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{
