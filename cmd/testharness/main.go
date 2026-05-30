@@ -333,13 +333,25 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
+
 			targetID := body.PropertyMap["ID"]
+
+			if body.TypeName == "Lnl_Badge" {
+				targetID = body.PropertyMap["BADGEKEY"]
+			}
+
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
 			filtered := list[:0]
 			for _, m := range list {
-				if m["ID"] != targetID {
-					filtered = append(filtered, m)
+				if body.TypeName == "Lnl_Badge" {
+					if m["BADGEKEY"] != targetID {
+						filtered = append(filtered, m)
+					}
+				} else {
+					if m["ID"] != targetID {
+						filtered = append(filtered, m)
+					}
 				}
 			}
 			s.instances[body.TypeName] = filtered
