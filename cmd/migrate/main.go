@@ -87,9 +87,9 @@ func main() {
 			continue
 		}
 		log.Printf("Deleting badge %d (%s)", b.Key, s.Name)
-		//if err := badgeCache.Delete(cl, b); err != nil {
-		//	log.Printf("Failed to delete badge %d: %v", b.Key, err)
-		//}
+		if err := badgeCache.Delete(cl, b); err != nil {
+			log.Printf("Failed to delete badge %d: %v", b.Key, err)
+		}
 	}
 
 	// 2. Identify and remove cardholders without badges
@@ -101,9 +101,9 @@ func main() {
 	for _, c := range cardholderCache.GetItems() {
 		log.Printf("Deleting detached cardholder %s %s (%d)", c.FirstName, c.LastName, c.ID)
 
-		//if err := cardholderCache.Delete(cl, c); err != nil {
-		//	log.Printf("Failed to delete cardholder %s %s (%d) %v", c.FirstName, c.LastName, c.ID, err)
-		//}
+		if err := cardholderCache.Delete(cl, c); err != nil {
+			log.Printf("Failed to delete cardholder %s %s (%d) %v", c.FirstName, c.LastName, c.ID, err)
+		}
 	}
 
 	// 3. Retrieve all badges and identify cardholders with more than one badge
