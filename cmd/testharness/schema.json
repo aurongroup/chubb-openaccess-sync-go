@@ -25,8 +25,12 @@
     }
   },
   "Lnl_Badge": {
-    "required": ["BADGEKEY", "PERSONID", "TYPE"],
+    "required": ["ID", "PERSONID", "TYPE"],
     "autotime": "LASTCHANGED",
+    "references": [
+      { "field": "PERSONID", "type": "Lnl_Cardholder", "key": "ID" }
+    ],
+    "immutable": ["PERSONID"],
     "defaults": {
       "ACTIVATE": "2016-01-01",
       "APBEXEMPT": false,
@@ -69,6 +73,11 @@
   },
   "Lnl_AccessLevelAssignment": {
     "required": ["AccessLevelID", "BadgeKey"],
+    "readonly": true,
+    "references": [
+      { "field": "AccessLevelID", "type": "Lnl_AccessLevel", "key": "ID" },
+      { "field": "BadgeKey",      "type": "Lnl_Badge",       "key": "BADGEKEY" }
+    ],
     "defaults": {
       "Activate": null,
       "Deactivate": null

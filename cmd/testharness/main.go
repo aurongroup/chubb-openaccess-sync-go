@@ -41,10 +41,19 @@ type instanceBody struct {
 	PropertyMap map[string]any `json:"property_value_map"`
 }
 
+type reference struct {
+	Field string `json:"field"`
+	Type  string `json:"type"`
+	Key   string `json:"key"`
+}
+
 type typeSchema struct {
-	Required []string       `json:"required"`
-	Defaults map[string]any `json:"defaults"`
-	AutoTime string         `json:"autotime"`
+	Required   []string       `json:"required"`
+	Defaults   map[string]any `json:"defaults"`
+	AutoTime   string         `json:"autotime"`
+	References []reference    `json:"references"`
+	Immutable  []string       `json:"immutable"`
+	ReadOnly   bool           `json:"readonly"`
 }
 
 type store struct {
@@ -89,6 +98,22 @@ func (s *store) initNextID(typeName string) {
 		}
 	}
 	s.nextID[typeName] = max
+}
+
+// checkReferences validates FK constraints against the field index.
+// Must be called with s.mu held.
+func (s *store) checkReferences(refs []reference, props map[string]any) []string {
+	var failures []string
+	for _, ref := range refs {
+		val, ok := props[ref.Field]
+		if !ok {
+			continue // missing field already caught by required check
+		}
+		if len(s.fieldIdx[ref.Type][ref.Key][fmt.Sprintf("%v", val)]) == 0 {
+			failures = append(failures, fmt.Sprintf("%s references unknown %s.%s", ref.Field, ref.Type, ref.Key))
+		}
+	}
+	return failures
 }
 
 // rebuildIndex rebuilds the field-value index for the given type from scratch.
@@ -332,6 +357,17 @@ func handleInstances(s *store) http.HandlerFunc {
 					})
 					return
 				}
+				if len(sc.References) > 0 {
+					s.mu.Lock()
+					failures := s.checkReferences(sc.References, body.PropertyMap)
+					s.mu.Unlock()
+					if len(failures) > 0 {
+						writeJSON(w, http.StatusBadRequest, map[string]string{
+							"error": strings.Join(failures, "; "),
+						})
+						return
+					}
+				}
 				merged := make(map[string]any, len(sc.Defaults)+len(body.PropertyMap))
 				for k, v := range sc.Defaults {
 					merged[k] = v
@@ -365,27 +401,48 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
-			if sc, ok := s.schema[body.TypeName]; ok && sc.AutoTime != "" {
-				body.PropertyMap[sc.AutoTime] = time.Now().Format("2006-01-02T15:04:05")
+			if sc, ok := s.schema[body.TypeName]; ok {
+				if sc.ReadOnly {
+					writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": body.TypeName + " cannot be updated"})
+					return
+				}
+				if sc.AutoTime != "" {
+					body.PropertyMap[sc.AutoTime] = time.Now().Format("2006-01-02T15:04:05")
+				}
 			}
 			idField := primaryKeyField(body.TypeName)
 			targetID := body.PropertyMap[idField]
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
 			found := false
+			var immutableErr string
 			for i, m := range list {
 				if m[idField] == targetID {
-					list[i] = body.PropertyMap
+					if sc, ok := s.schema[body.TypeName]; ok {
+						for _, f := range sc.Immutable {
+							if fmt.Sprintf("%v", m[f]) != fmt.Sprintf("%v", body.PropertyMap[f]) {
+								immutableErr = f + " is immutable and cannot be changed"
+								break
+							}
+						}
+					}
+					if immutableErr == "" {
+						list[i] = body.PropertyMap
+					}
 					found = true
 					break
 				}
 			}
-			if found {
+			if found && immutableErr == "" {
 				s.rebuildIndex(body.TypeName)
 			}
 			s.mu.Unlock()
 			if !found {
 				writeJSON(w, http.StatusNotFound, map[string]string{"error": "instance not found"})
+				return
+			}
+			if immutableErr != "" {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": immutableErr})
 				return
 			}
 			log.Printf("instances: updated %s %s=%v", body.TypeName, idField, targetID)
