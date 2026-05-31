@@ -41,6 +41,12 @@ type instanceBody struct {
 	PropertyMap map[string]any `json:"property_value_map"`
 }
 
+type typeSchema struct {
+	Required []string       `json:"required"`
+	Defaults map[string]any `json:"defaults"`
+	AutoTime string         `json:"autotime"`
+}
+
 type store struct {
 	mu        sync.Mutex
 	sessions  map[string]time.Time
@@ -48,6 +54,7 @@ type store struct {
 	// fieldIdx[typeName][fieldName][stringifiedValue] -> indices into instances[typeName]
 	fieldIdx map[string]map[string]map[string][]int
 	nextID   map[string]int
+	schema   map[string]typeSchema
 	timeout  time.Duration
 }
 
@@ -57,6 +64,7 @@ func newStore(timeout time.Duration) *store {
 		instances: make(map[string][]map[string]any),
 		fieldIdx:  make(map[string]map[string]map[string][]int),
 		nextID:    make(map[string]int),
+		schema:    make(map[string]typeSchema),
 		timeout:   timeout,
 	}
 }
@@ -311,6 +319,31 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
+			if sc, ok := s.schema[body.TypeName]; ok {
+				var missing []string
+				for _, f := range sc.Required {
+					if _, present := body.PropertyMap[f]; !present {
+						missing = append(missing, f)
+					}
+				}
+				if len(missing) > 0 {
+					writeJSON(w, http.StatusBadRequest, map[string]string{
+						"error": "missing required fields: " + strings.Join(missing, ", "),
+					})
+					return
+				}
+				merged := make(map[string]any, len(sc.Defaults)+len(body.PropertyMap))
+				for k, v := range sc.Defaults {
+					merged[k] = v
+				}
+				for k, v := range body.PropertyMap {
+					merged[k] = v
+				}
+				body.PropertyMap = merged
+				if sc.AutoTime != "" {
+					body.PropertyMap[sc.AutoTime] = time.Now().Format("2006-01-02T15:04:05")
+				}
+			}
 			idField := primaryKeyField(body.TypeName)
 			s.mu.Lock()
 			s.nextID[body.TypeName]++
@@ -331,6 +364,9 @@ func handleInstances(s *store) http.HandlerFunc {
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
+			}
+			if sc, ok := s.schema[body.TypeName]; ok && sc.AutoTime != "" {
+				body.PropertyMap[sc.AutoTime] = time.Now().Format("2006-01-02T15:04:05")
 			}
 			idField := primaryKeyField(body.TypeName)
 			targetID := body.PropertyMap[idField]
@@ -421,13 +457,25 @@ func handleCardholders(s *store) http.HandlerFunc {
 	}
 }
 
+func loadSchema(s *store, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read schema: %w", err)
+	}
+	if err := json.Unmarshal(data, &s.schema); err != nil {
+		return fmt.Errorf("parse schema: %w", err)
+	}
+	log.Printf("loaded schema for %d types from %s", len(s.schema), path)
+	return nil
+}
+
 func loadDataDir(s *store, dir string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("read directory: %w", err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") || strings.HasPrefix(entry.Name(), "_") {
 			continue
 		}
 		typeName := strings.TrimSuffix(entry.Name(), ".json")
@@ -450,15 +498,22 @@ func loadDataDir(s *store, dir string) error {
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	sessionTimeout := flag.Duration("session-timeout", 5*time.Minute, "session token lifetime")
+	schemaFile := flag.String("schema", "", "path to schema JSON file (required)")
 	flag.Parse()
 
-	if flag.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "usage: testharness [flags] <data-dir>")
+	if flag.NArg() != 1 || *schemaFile == "" {
+		fmt.Fprintln(os.Stderr, "usage: testharness -schema <schema.json> [flags] <data-dir>")
 		os.Exit(1)
 	}
 
+	dataDir := flag.Arg(0)
 	s := newStore(*sessionTimeout)
-	if err := loadDataDir(s, flag.Arg(0)); err != nil {
+
+	if err := loadSchema(s, *schemaFile); err != nil {
+		log.Fatalf("failed to load schema: %v", err)
+	}
+
+	if err := loadDataDir(s, dataDir); err != nil {
 		log.Fatalf("failed to load data directory: %v", err)
 	}
 

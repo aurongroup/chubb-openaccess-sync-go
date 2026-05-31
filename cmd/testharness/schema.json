@@ -1,0 +1,77 @@
+{
+  "Lnl_Cardholder": {
+    "required": ["LASTNAME"],
+    "autotime": "LASTCHANGED",
+    "defaults": {
+      "ADDR1": null,
+      "ALLOWEDVISITORS": true,
+      "BDATE": null,
+      "BUILDING": 0,
+      "CITY": null,
+      "DEPT": null,
+      "DIVISION": 0,
+      "EMAIL": null,
+      "EXT": null,
+      "FIRSTNAME": null,
+      "FLOOR": null,
+      "LOCATION": 0,
+      "MIDNAME": null,
+      "OPHONE": null,
+      "PHONE": null,
+      "SSNO": null,
+      "STATE": null,
+      "TITLE": 0,
+      "ZIP": null
+    }
+  },
+  "Lnl_Badge": {
+    "required": ["BADGEKEY", "PERSONID", "TYPE"],
+    "autotime": "LASTCHANGED",
+    "defaults": {
+      "ACTIVATE": "2016-01-01",
+      "APBEXEMPT": false,
+      "DEACTIVATE": "2028-01-01",
+      "DEADBOLT_OVERRIDE": null,
+      "DEFAULT_DOOR": 1,
+      "DEFAULT_FLOOR": null,
+      "DEST_EXEMPT": false,
+      "DIRECT_KEY_TOOLKIT": false,
+      "EMBOSSED": null,
+      "EXTEND_STRIKE_HELD": false,
+      "ISSUECODE": 0,
+      "LASTPRINT": null,
+      "PASSAGE_MODE": false,
+      "PIN": null,
+      "PRINTS": 0,
+      "STATUS": 1,
+      "USELIMIT": null
+    }
+  },
+  "Lnl_AccessLevel": {
+    "required": ["Name"],
+    "defaults": {
+      "AvailableForRequest": false,
+      "DownloadToIntelligentReaders": false,
+      "EscortMode": 0,
+      "FirstCardUnlock": false,
+      "HasCommandAuthority": false
+    }
+  },
+  "Lnl_BadgeStatus": {
+    "required": ["Name"],
+    "defaults": {
+    }
+  },
+  "Lnl_BadgeType": {
+    "required": ["Name"],
+    "defaults": {
+    }
+  },
+  "Lnl_AccessLevelAssignment": {
+    "required": ["AccessLevelID", "BadgeKey"],
+    "defaults": {
+      "Activate": null,
+      "Deactivate": null
+    }
+  }
+}
