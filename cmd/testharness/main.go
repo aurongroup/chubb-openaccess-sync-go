@@ -292,9 +292,13 @@ func handleInstances(s *store) http.HandlerFunc {
 			id := len(s.instances[body.TypeName])
 			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
-			log.Printf("instances: created %s id=%d", body.TypeName, id)
+			idField := "ID"
+			if body.TypeName == "Lnl_Badge" {
+				idField = "BADGEKEY"
+			}
+			log.Printf("instances: created %s %s=%d", body.TypeName, idField, id)
 			writeJSON(w, http.StatusOK, map[string]any{
-				"property_value_map": map[string]any{"ID": id},
+				"property_value_map": map[string]any{idField: id},
 				"type_name":          body.TypeName,
 				"version":            "1.0",
 			})
@@ -305,12 +309,16 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
-			targetID := body.PropertyMap["ID"]
+			idField := "ID"
+			if body.TypeName == "Lnl_Badge" {
+				idField = "BADGEKEY"
+			}
+			targetID := body.PropertyMap[idField]
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
 			found := false
 			for i, m := range list {
-				if m["ID"] == targetID {
+				if m[idField] == targetID {
 					list[i] = body.PropertyMap
 					found = true
 					break
@@ -324,7 +332,7 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusNotFound, map[string]string{"error": "instance not found"})
 				return
 			}
-			log.Printf("instances: updated %s id=%v", body.TypeName, targetID)
+			log.Printf("instances: updated %s %s=%v", body.TypeName, idField, targetID)
 			writeJSON(w, http.StatusOK, map[string]any{})
 
 		case http.MethodDelete:
