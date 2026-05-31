@@ -47,6 +47,7 @@ type store struct {
 	instances map[string][]map[string]any
 	// fieldIdx[typeName][fieldName][stringifiedValue] -> indices into instances[typeName]
 	fieldIdx map[string]map[string]map[string][]int
+	nextID   map[string]int
 	timeout  time.Duration
 }
 
@@ -55,8 +56,31 @@ func newStore(timeout time.Duration) *store {
 		sessions:  make(map[string]time.Time),
 		instances: make(map[string][]map[string]any),
 		fieldIdx:  make(map[string]map[string]map[string][]int),
+		nextID:    make(map[string]int),
 		timeout:   timeout,
 	}
+}
+
+func primaryKeyField(typeName string) string {
+	if typeName == "Lnl_Badge" {
+		return "BADGEKEY"
+	}
+	return "ID"
+}
+
+// initNextID scans loaded instances to find the current maximum primary key value.
+// Must be called with s.mu held (or before serving requests).
+func (s *store) initNextID(typeName string) {
+	field := primaryKeyField(typeName)
+	max := 0
+	for _, item := range s.instances[typeName] {
+		if v, ok := item[field]; ok {
+			if n, ok := v.(float64); ok && int(n) > max {
+				max = int(n)
+			}
+		}
+	}
+	s.nextID[typeName] = max
 }
 
 // rebuildIndex rebuilds the field-value index for the given type from scratch.
@@ -287,18 +311,17 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
+			idField := primaryKeyField(body.TypeName)
 			s.mu.Lock()
+			s.nextID[body.TypeName]++
+			newID := s.nextID[body.TypeName]
+			body.PropertyMap[idField] = float64(newID)
 			s.instances[body.TypeName] = append(s.instances[body.TypeName], body.PropertyMap)
-			id := len(s.instances[body.TypeName])
 			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
-			idField := "ID"
-			if body.TypeName == "Lnl_Badge" {
-				idField = "BADGEKEY"
-			}
-			log.Printf("instances: created %s %s=%d", body.TypeName, idField, id)
+			log.Printf("instances: created %s %s=%d", body.TypeName, idField, newID)
 			writeJSON(w, http.StatusOK, map[string]any{
-				"property_value_map": map[string]any{idField: id},
+				"property_value_map": map[string]any{idField: newID},
 				"type_name":          body.TypeName,
 				"version":            "1.0",
 			})
@@ -309,10 +332,7 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
-			idField := "ID"
-			if body.TypeName == "Lnl_Badge" {
-				idField = "BADGEKEY"
-			}
+			idField := primaryKeyField(body.TypeName)
 			targetID := body.PropertyMap[idField]
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
@@ -341,31 +361,20 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
-
-			targetID := body.PropertyMap["ID"]
-
-			if body.TypeName == "Lnl_Badge" {
-				targetID = body.PropertyMap["BADGEKEY"]
-			}
-
+			idField := primaryKeyField(body.TypeName)
+			targetID := body.PropertyMap[idField]
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
 			filtered := list[:0]
 			for _, m := range list {
-				if body.TypeName == "Lnl_Badge" {
-					if m["BADGEKEY"] != targetID {
-						filtered = append(filtered, m)
-					}
-				} else {
-					if m["ID"] != targetID {
-						filtered = append(filtered, m)
-					}
+				if m[idField] != targetID {
+					filtered = append(filtered, m)
 				}
 			}
 			s.instances[body.TypeName] = filtered
 			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
-			log.Printf("instances: deleted %s id=%v", body.TypeName, targetID)
+			log.Printf("instances: deleted %s %s=%v", body.TypeName, idField, targetID)
 			writeJSON(w, http.StatusOK, map[string]any{})
 
 		default:
@@ -432,6 +441,7 @@ func loadDataDir(s *store, dir string) error {
 		}
 		s.instances[typeName] = items
 		s.rebuildIndex(typeName)
+		s.initNextID(typeName)
 		log.Printf("loaded %d records for %s", len(items), typeName)
 	}
 	return nil
