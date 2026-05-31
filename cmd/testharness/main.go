@@ -321,7 +321,7 @@ func handleInstances(s *store) http.HandlerFunc {
 			s.mu.Unlock()
 			log.Printf("instances: created %s %s=%d", body.TypeName, idField, newID)
 			writeJSON(w, http.StatusOK, map[string]any{
-				"property_value_map": map[string]any{idField: newID},
+				"property_value_map": body.PropertyMap,
 				"type_name":          body.TypeName,
 				"version":            "1.0",
 			})
