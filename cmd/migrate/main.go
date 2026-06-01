@@ -106,7 +106,24 @@ func main() {
 		}
 	}
 
-	// 3. Retrieve all badges and identify cardholders with more than one badge
+	// 3. Find cardholders with an SSNO and move the value to OPHONE (office phone)
+	cardholderCache = lenel.NewCardholderCache()
+	if err := cardholderCache.Fill(cl); err != nil {
+		log.Fatalf("Cardholder cache fill failed: %v", err)
+	}
+
+	for _, c := range cardholderCache.GetItems() {
+		if c.SSNO != "" {
+			log.Printf("Moving SSNO to OPHONE for cardholder %s %s (%d) [SSNO: %s]", c.FirstName, c.LastName, c.ID, c.SSNO)
+			c.OfficePhone = c.SSNO
+			c.SSNO = ""
+			if err := cardholderCache.Update(cl, c); err != nil {
+				log.Printf("Failed to update cardholder %s %s (%d) %v", c.FirstName, c.LastName, c.ID, err)
+			}
+		}
+	}
+
+	// 4. Retrieve all badges and identify cardholders with more than one badge
 	cardholderCache = lenel.NewCardholderCache()
 	if err := cardholderCache.Fill(cl); err != nil {
 		log.Fatalf("Cardholder cache fill failed: %v", err)
