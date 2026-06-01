@@ -492,10 +492,31 @@ func handleCardholders(s *store) http.HandlerFunc {
 
 		page := queryInt(r, "page_number", 1)
 		size := queryInt(r, "page_size", 10)
+		hasBadgesParam := r.URL.Query().Get("has_badges")
 
 		s.mu.Lock()
-		all := s.instances["Lnl_Cardholder"]
+		cardholders := s.instances["Lnl_Cardholder"]
+		badges := s.instances["Lnl_Badge"]
 		s.mu.Unlock()
+
+		var all []map[string]any
+		if hasBadgesParam == "" {
+			all = cardholders
+		} else {
+			want := hasBadgesParam == "true"
+			badged := make(map[any]bool, len(badges))
+			for _, b := range badges {
+				if ch := b["PERSONID"]; ch != nil {
+					badged[ch] = true
+				}
+			}
+			for _, c := range cardholders {
+				_, has := badged[c["ID"]]
+				if has == want {
+					all = append(all, c)
+				}
+			}
+		}
 
 		slice, totalPages := paginate(all, page, size)
 		items := make([]instanceItem, len(slice))

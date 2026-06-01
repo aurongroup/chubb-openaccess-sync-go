@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"openaccess-sync/pkg/client"
+	"openaccess-sync/pkg/config"
+	"openaccess-sync/pkg/data/lenel"
 	"strings"
 	"testing"
 	"time"
@@ -38,6 +41,9 @@ func setupServer(t *testing.T) (*httptest.Server, *store) {
 	s := newStore(time.Hour)
 	s.schema = testSchema
 	mux := http.NewServeMux()
+	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]any{"version": "1.0"})
+	})
 	mux.HandleFunc("/authentication", handleAuthentication(s))
 	mux.HandleFunc("/instances", handleInstances(s))
 	mux.HandleFunc("/cardholders", handleCardholders(s))
@@ -684,6 +690,176 @@ func TestCardholders_NonGetReturns405(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Errorf("expected 405, got %d", resp.StatusCode)
+	}
+}
+
+func TestCardholders_HasBadgesTrue(t *testing.T) {
+	srv, s := setupServer(t)
+	token := login(t, srv)
+	s.mu.Lock()
+	s.instances["Lnl_Cardholder"] = []map[string]any{
+		{"ID": float64(1), "LASTNAME": "Smith"},
+		{"ID": float64(2), "LASTNAME": "Jones"},
+		{"ID": float64(3), "LASTNAME": "Brown"},
+	}
+	s.instances["Lnl_Badge"] = []map[string]any{
+		{"BADGEKEY": float64(10), "PERSONID": float64(2)},
+	}
+	s.rebuildIndex("Lnl_Cardholder")
+	s.rebuildIndex("Lnl_Badge")
+	s.mu.Unlock()
+
+	var result instanceResponse
+	resp := call(t, srv, token, http.MethodGet, "/cardholders?has_badges=true", nil, &result)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if result.TotalItems != 1 {
+		t.Errorf("expected 1 cardholder with badge, got %d", result.TotalItems)
+	}
+	if result.ItemList[0].PropertyMap["LASTNAME"] != "Jones" {
+		t.Errorf("expected Jones, got %v", result.ItemList[0].PropertyMap["LASTNAME"])
+	}
+}
+
+func TestCardholders_HasBadgesFalse(t *testing.T) {
+	srv, s := setupServer(t)
+	token := login(t, srv)
+	s.mu.Lock()
+	s.instances["Lnl_Cardholder"] = []map[string]any{
+		{"ID": float64(1), "LASTNAME": "Smith"},
+		{"ID": float64(2), "LASTNAME": "Jones"},
+		{"ID": float64(3), "LASTNAME": "Brown"},
+	}
+	s.instances["Lnl_Badge"] = []map[string]any{
+		{"BADGEKEY": float64(10), "PERSONID": float64(2)},
+	}
+	s.rebuildIndex("Lnl_Cardholder")
+	s.rebuildIndex("Lnl_Badge")
+	s.mu.Unlock()
+
+	var result instanceResponse
+	resp := call(t, srv, token, http.MethodGet, "/cardholders?has_badges=false", nil, &result)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if result.TotalItems != 2 {
+		t.Errorf("expected 2 cardholders without badges, got %d", result.TotalItems)
+	}
+}
+
+func TestCardholders_HasBadgesNoParam(t *testing.T) {
+	srv, s := setupServer(t)
+	token := login(t, srv)
+	s.mu.Lock()
+	s.instances["Lnl_Cardholder"] = []map[string]any{
+		{"ID": float64(1), "LASTNAME": "Smith"},
+		{"ID": float64(2), "LASTNAME": "Jones"},
+	}
+	s.instances["Lnl_Badge"] = []map[string]any{
+		{"BADGEKEY": float64(10), "PERSONID": float64(1)},
+	}
+	s.rebuildIndex("Lnl_Cardholder")
+	s.rebuildIndex("Lnl_Badge")
+	s.mu.Unlock()
+
+	var result instanceResponse
+	resp := call(t, srv, token, http.MethodGet, "/cardholders", nil, &result)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if result.TotalItems != 2 {
+		t.Errorf("expected all 2 cardholders, got %d", result.TotalItems)
+	}
+}
+
+func TestCardholderCacheFillDetached_onlyReturnsCardholdersWithoutBadges(t *testing.T) {
+	srv, s := setupServer(t)
+	s.mu.Lock()
+	s.instances["Lnl_Cardholder"] = []map[string]any{
+		{"ID": float64(1), "LASTNAME": "Smith"},  // has a badge — should be excluded
+		{"ID": float64(2), "LASTNAME": "Jones"},  // no badge — included
+		{"ID": float64(3), "LASTNAME": "Brown"},  // no badge — included
+	}
+	s.instances["Lnl_Badge"] = []map[string]any{
+		{"BADGEKEY": float64(10), "PERSONID": float64(1)},
+	}
+	s.rebuildIndex("Lnl_Cardholder")
+	s.rebuildIndex("Lnl_Badge")
+	s.mu.Unlock()
+
+	cl, err := client.NewClient(config.AppConfig{
+		Endpoint:    srv.URL,
+		Application: "test",
+		User:        "test",
+		Password:    "x",
+		Directory:   "1",
+		PageSize:    100,
+	})
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	defer cl.Close()
+
+	cache := lenel.NewCardholderCache()
+	if err := cache.FillDetached(cl); err != nil {
+		t.Fatalf("FillDetached: %v", err)
+	}
+
+	items := cache.GetItems()
+	if len(items) != 2 {
+		t.Errorf("expected 2 detached cardholders, got %d", len(items))
+	}
+	for _, ch := range items {
+		if ch.ID == 1 {
+			t.Errorf("cardholder 1 (Smith) has a badge and should not appear in detached results")
+		}
+	}
+}
+
+// ---- BadgeCache -----------------------------------------------------------
+
+func TestBadgeCacheFillWithFilter_StatusNotEquals1OnlyReturnsBadgesWithoutStatus1(t *testing.T) {
+	srv, s := setupServer(t)
+	s.mu.Lock()
+	s.instances["Lnl_Badge"] = []map[string]any{
+		{"BADGEKEY": float64(1), "ID": float64(1001), "STATUS": float64(1), "TYPE": float64(1), "PERSONID": float64(10)}, // excluded
+		{"BADGEKEY": float64(2), "ID": float64(1002), "STATUS": float64(2), "TYPE": float64(1), "PERSONID": float64(10)}, // included
+		{"BADGEKEY": float64(3), "ID": float64(1003), "STATUS": float64(1), "TYPE": float64(1), "PERSONID": float64(10)}, // excluded
+		{"BADGEKEY": float64(4), "ID": float64(1004), "STATUS": float64(3), "TYPE": float64(1), "PERSONID": float64(10)}, // included
+	}
+	s.rebuildIndex("Lnl_Badge")
+	s.mu.Unlock()
+
+	cl, err := client.NewClient(config.AppConfig{
+		Endpoint:    srv.URL,
+		Application: "test",
+		User:        "test",
+		Password:    "x",
+		Directory:   "1",
+		PageSize:    100,
+	})
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	defer cl.Close()
+
+	cache := lenel.NewBadgeCache()
+	if err := cache.FillWithFilter(cl, "STATUS!=1"); err != nil {
+		t.Fatalf("FillWithFilter: %v", err)
+	}
+
+	items := cache.GetItems()
+	if len(items) != 2 {
+		t.Errorf("expected 2 badges with STATUS!=1, got %d", len(items))
+	}
+	for _, b := range items {
+		if b.Status == 1 {
+			t.Errorf("badge with STATUS=1 should not appear in filtered results (BADGEKEY=%d)", b.Key)
+		}
 	}
 }
 
