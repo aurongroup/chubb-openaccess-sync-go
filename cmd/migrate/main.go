@@ -92,12 +92,16 @@ func main() {
 		}
 	}
 
+	badgeCache = lenel.NewBadgeCache()
+	if err := badgeCache.Fill(cl); err != nil {
+		log.Fatalf("Badge cache fill failed: %v", err)
+	}
+
 	// 2. Identify and remove cardholders without badges
 	cardholderCache := lenel.NewCardholderCache()
 	if err := cardholderCache.FillDetached(cl); err != nil {
 		log.Fatalf("Detached cardholder cache fill failed: %v", err)
 	}
-
 	for _, c := range cardholderCache.GetItems() {
 		log.Printf("Deleting detached cardholder %s %s (%d)", c.FirstName, c.LastName, c.ID)
 
