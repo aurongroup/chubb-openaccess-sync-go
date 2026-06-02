@@ -1,6 +1,7 @@
 package lenel
 
 import (
+	"fmt"
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/data/model"
@@ -66,4 +67,30 @@ func NewAssignmentCache() AssignmentCache {
 		byAccessLevel: make(map[int32][]*model.AccessLevelAssignment),
 		byBadgeKey:    make(map[int32][]*model.AccessLevelAssignment),
 	}
+}
+
+func (c *AssignmentCache) Create(cl *client.Client, ala *model.AccessLevelAssignment) error {
+	_, err := cl.CreateInstance(
+		"Lnl_AccessLevelAssignment",
+		map[string]interface{}{
+			"AccessLevelID": ala.AccessLevel,
+			"BadgeKey":      ala.BadgeKey,
+		},
+	)
+
+	return err
+}
+
+func (c *AssignmentCache) Update(cl *client.Client, ala *model.AccessLevelAssignment) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (c *AssignmentCache) Delete(cl *client.Client, ala *model.AccessLevelAssignment) error {
+	return cl.DeleteInstance(
+		"Lnl_AccessLevelAssignment",
+		map[string]interface{}{
+			"AccessLevelID": ala.AccessLevel,
+			"BadgeKey":      ala.BadgeKey,
+		},
+	)
 }

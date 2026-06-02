@@ -9,6 +9,7 @@ import (
 	"openaccess-sync/pkg/data/lenel"
 	"openaccess-sync/pkg/data/model"
 	"os"
+	"strconv"
 
 	"github.com/spf13/pflag"
 )
@@ -54,14 +55,14 @@ func main() {
 
 	// 1. Identify and remove inactive badges
 	// 2. Identify and remove cardholders without badges
-	// 3. Retrieve all badges and identify cardholders with more than one badge
+	// 3. Update cardholders with existing SSNO, moving the SSNO to "Office Phone" (OPHONE)
+	// 4. Retrieve all badges and identify cardholders with more than one badge
 	//    -> For each additional badge
-	//    ----> 3.1 Retrieve access levels for badge
-	//    ----> 3.2 Delete existing badge
-	//    ----> 3.3 Create new cardholder record
-	//    ----> 3.4 Create new badge linked to new cardholder
-	//    ----> 3.5 Add access levels to new badge
-	// 4. Update cardholders with existing SSNO, moving the SSNO to "Office Phone" (OPHONE)
+	//    ----> 4.1 Retrieve access levels for badge
+	//    ----> 4.2 Delete existing badge
+	//    ----> 4.3 Create new cardholder record
+	//    ----> 4.4 Create new badge linked to new cardholder
+	//    ----> 4.5 Add access levels to new badge
 	// 5. Update all cardholder records with new SSNO based on attached badges
 
 	// 1. Identify and remove inactive badges
@@ -111,6 +112,8 @@ func main() {
 	}
 
 	// 3. Find cardholders with an SSNO and move the value to OPHONE (office phone)
+	// TODO - check if SSNO matches attached badge ID
+	// --- Perhaps move remove duplicates first?
 	cardholderCache = lenel.NewCardholderCache()
 	if err := cardholderCache.Fill(cl); err != nil {
 		log.Fatalf("Cardholder cache fill failed: %v", err)
@@ -156,78 +159,104 @@ func main() {
 	}
 
 	if len(duplicates) > 0 {
-		log.Printf("Found %d duplicate cardholder IDs: %v", len(duplicates), duplicates) // FIXME
+		log.Printf("Found %d duplicate cardholder IDs", len(duplicates))
 
-		for cardholderID, badgeIDs := range duplicates {
-			log.Printf("Duplicate cardholder ID %d found on badges: %v", cardholderID, badgeIDs)
+		for cardholderID, badgeKeys := range duplicates {
+			log.Printf("--> Duplicate cardholder ID %d found on badges: %v", cardholderID, badgeKeys)
 
-			for _, badgeID := range badgeIDs {
-				log.Printf("Badge ID %d has duplicate cardholder ID %d", badgeID, cardholderID)
+			for _, badgeKey := range badgeKeys {
+				log.Printf("----> Badge ID %d has duplicate cardholder ID %d", badgeKey, cardholderID)
 
-				assignments := assignmentCache.GetItemsByBadgeKey(badgeID)
+				existingBadge := badgeCache.GetByKey(badgeKey)
+				if existingBadge == nil {
+					log.Printf("***** Badge ID %d not found in cache - skipping", badgeKey)
+					continue
+				}
+
+				assignments := assignmentCache.GetItemsByBadgeKey(badgeKey)
+
+				newBadge, err := model.NewBadge(
+					existingBadge.ID,
+					0,
+					existingBadge.Activate,
+					existingBadge.Deactivate,
+					existingBadge.Status,
+					existingBadge.Type,
+					cardholderID,
+				)
+
+				if err != nil {
+					log.Printf("***** Error creating new badge for badge ID %d: %v", badgeKey, err)
+					continue
+				}
+
+				_, err = badgeCache.Create(cl, newBadge)
+				if err != nil {
+					log.Printf("***** Error creating new badge for badge ID %d: %v", badgeKey, err)
+					continue
+				}
 
 				for _, assignment := range assignments {
+					// TODO - logging
 					a := alc.GetByID(assignment.AccessLevel)
 					if a == nil {
-						log.Printf("Access level %d not found for badge ID %d", assignment.AccessLevel, badgeID)
+						log.Printf("Access level %d not found for badge ID %d", assignment.AccessLevel, badgeKey)
 						continue
 					}
-					log.Printf("Assignment for badge ID %d: %s (%d)", badgeID, a.Name, a.ID)
+					log.Printf("------> Assignment for badge ID %d: %s (%d)", badgeKey, a.Name, a.ID)
+
+					newAssignment, err := model.NewAccessLevelAssignment(assignment.AccessLevel, newBadge.Key)
+					if err == nil {
+						log.Printf("******* Error creating new assignment for badge ID %d: %v", badgeKey, err)
+						continue
+					}
+
+					err = assignmentCache.Create(cl, newAssignment)
+					if err != nil {
+						log.Printf("******* Error creating new assignment for badge ID %d: %v", badgeKey, err)
+						continue
+					}
+
+					// Delete existing assignment
+					err = assignmentCache.Delete(cl, assignment)
+					if err != nil {
+						log.Printf("******* Error deleting assignment for existing badge ID %d: %v", badgeKey, err)
+						continue
+					}
 				}
 
 				// Delete badge
-
-				// Create new badge
-
-				// Add access levels
-
-				//ch := model.NewCardholder(0, badgeID, ch.Firstname, ch.Lastname)
-				//cardholderCache.Create(cl, ch)
-				//
-				//b.Cardholder = ch.ID
-				//badgeCache.Update(cl, b)
+				err = badgeCache.Delete(cl, existingBadge)
+				if err != nil {
+					log.Printf("***** Error deleting badge ID %d: %v", badgeKey, err)
+					continue
+				}
 			}
 		}
 	}
 
-	// 4. Update cardholders with existing SSNO, moving the SSNO to "Office Phone" (OPHONE)
+	// 5. Update all cardholder records with new SSNO based on attached badges
+	badgeCache = lenel.NewBadgeCache()
+	if err := badgeCache.Fill(cl); err != nil {
+		log.Fatalf("Badge cache fill failed: %v", err)
+	}
 
-	//for _, b := range badgeCache.GetItems() {
-	//	ch := cardholderCache.GetByID(b.Cardholder)
-	//	if ch == nil {
-	//		log.Printf("Cardholder ID %d not found in cache", b.Cardholder)
-	//		continue
-	//	}
-	//
-	//	if ch.SSNO != "" && ch.OfficePhone == "" {
-	//		ch.OfficePhone = ch.SSNO
-	//	}
-	//
-	//	ch.SSNO = strconv.FormatInt(b.ID, 10)
-	//
-	//	log.Printf("Setting cardholder %s %s (%d) SSNO to badge ID %d", ch.FirstName, ch.LastName, ch.ID, b.ID)
-	//	if err := cardholderCache.Update(cl, ch); err != nil {
-	//		log.Printf("Failed to update cardholder %d: %v", b.Key, err)
-	//	}
-	//}
+	for _, cardholder := range cardholderCache.GetItems() {
+		badges := badgeCache.GetByCardholder(cardholder.ID)
+		if len(badges) > 0 {
+			if len(badges) > 1 {
+				log.Printf("Cardholder %s %s (%d) has multiple badges: %d", cardholder.FirstName, cardholder.LastName, cardholder.ID, len(badges))
+				continue
+			}
 
-	//for _, c := range cardholderCache.GetItems() {
-	//	log.Printf("Updating cardholder %s %s (%d)", c.FirstName, c.LastName, c.ID)
-	//
-	//	if err := cardholderCache.Update(cl, c); err != nil {
-	//		log.Printf("Failed to delete cardholder %s %s (%d) %v", c.FirstName, c.LastName, c.ID, err)
-	//	}
-	//}
-	//cache := lenel.NewDataCache(cl)
+			cardholder.SSNO = strconv.FormatInt(badges[0].ID, 10)
+			err := cardholderCache.Update(cl, cardholder)
+			if err != nil {
+				log.Printf("Failed to update cardholder %d: %v", cardholder.ID, err)
+				continue
+			}
 
-	//if err := cache.Fill(); err != nil {
-	//	log.Fatalf("Failed to load API data: %v", err)
-	//}
-
-	//arc := csv.BuildAccessRecordCache(cache)
-	//
-	//err = csv.Write(arc.Records(), cfg.File)
-	//if err != nil {
-	//	log.Fatalf("Operation failed: %v", err)
-	//}
+			log.Printf("Updated cardholder %s %s (%d) SSNO to badge ID %d", cardholder.FirstName, cardholder.LastName, cardholder.ID, badges[0].ID)
+		}
+	}
 }

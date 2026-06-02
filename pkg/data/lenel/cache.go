@@ -52,7 +52,7 @@ func (c *DataCache) GetAccessLevelsByBadge(badgeKey int32) []*model2.AccessLevel
 	return []*model2.AccessLevel{}
 }
 
-func (c *DataCache) GetBadge(id int32) *model2.Badge {
+func (c *DataCache) GetBadge(id int64) *model2.Badge {
 	return c.badges.byID[id]
 }
 
@@ -60,7 +60,7 @@ func (c *DataCache) GetBadges() []*model2.Badge {
 	return c.badges.list
 }
 
-func (c *DataCache) GetBadgeByKey(key int64) *model2.Badge {
+func (c *DataCache) GetBadgeByKey(key int32) *model2.Badge {
 	return c.badges.byKey[key]
 }
 

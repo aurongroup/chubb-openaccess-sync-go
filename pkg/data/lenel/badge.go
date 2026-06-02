@@ -7,20 +7,52 @@ import (
 )
 
 type BadgeCache struct {
-	list  []*model.Badge
-	byID  map[int32]*model.Badge
-	byKey map[int64]*model.Badge
+	list         []*model.Badge
+	byID         map[int64]*model.Badge
+	byKey        map[int32]*model.Badge
+	byCardholder map[int32][]*model.Badge
 }
 
 func NewBadgeCache() BadgeCache {
 	return BadgeCache{
-		byID:  make(map[int32]*model.Badge),
-		byKey: make(map[int64]*model.Badge),
+		byID:         make(map[int64]*model.Badge),
+		byKey:        make(map[int32]*model.Badge),
+		byCardholder: make(map[int32][]*model.Badge),
 	}
 }
 
 func (c *BadgeCache) GetItems() []*model.Badge {
 	return c.list
+}
+
+func (c *BadgeCache) GetByID(id int64) *model.Badge {
+	b, ok := c.byID[id]
+
+	if ok {
+		return b
+	}
+
+	return nil
+}
+
+func (c *BadgeCache) GetByKey(key int32) *model.Badge {
+	b, ok := c.byKey[key]
+
+	if ok {
+		return b
+	}
+
+	return nil
+}
+
+func (c *BadgeCache) GetByCardholder(key int32) []*model.Badge {
+	b, ok := c.byCardholder[key]
+
+	if ok {
+		return b
+	}
+
+	return []*model.Badge{}
 }
 
 func (c *BadgeCache) Fill(cl *client.Client) error {
@@ -41,8 +73,13 @@ func (c *BadgeCache) FillWithFilter(cl *client.Client, filter string) error {
 		}
 
 		c.list = append(c.list, b)
-		c.byID[b.Key] = b
-		c.byKey[b.ID] = b
+		c.byID[b.ID] = b
+		c.byKey[b.Key] = b
+
+		if _, ok := c.byCardholder[b.Cardholder]; !ok {
+			c.byCardholder[b.Cardholder] = []*model.Badge{}
+		}
+		c.byCardholder[b.Cardholder] = append(c.byCardholder[b.Cardholder], b)
 	}
 	log.Printf("Retrieved %d Lnl_Badge records", len(c.list))
 	return nil
