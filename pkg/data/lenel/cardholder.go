@@ -1,10 +1,14 @@
 package lenel
 
 import (
+	"errors"
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/data/model"
+	json "openaccess-sync/pkg/util/json"
 )
+
+var ErrCardholderCreateMissingID = errors.New("cardholder: create response missing ID")
 
 type CardholderCache struct {
 	list []*model.Cardholder
@@ -76,7 +80,7 @@ func (c *CardholderCache) FillDetached(cl *client.Client) error {
 }
 
 func (c *CardholderCache) Create(cl *client.Client, ch *model.Cardholder) (int32, error) {
-	id, err := cl.CreateInstance(
+	props, err := cl.CreateInstance(
 		"Lnl_Cardholder",
 		map[string]interface{}{
 			"FIRSTNAME": ch.FirstName,
@@ -89,6 +93,10 @@ func (c *CardholderCache) Create(cl *client.Client, ch *model.Cardholder) (int32
 		return 0, err
 	}
 
+	id := json.PropToInt32(props, "ID")
+	if id == 0 {
+		return 0, ErrCardholderCreateMissingID
+	}
 	ch.ID = id
 
 	return id, nil

@@ -313,23 +313,28 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 
 {"property_value_map":{"AccessLevelID":1,"BadgeKey":13239},"type_name":"Lnl_AccessLevelAssignment","version":"1.0"}
 */
-func (c *Client) CreateInstance(typeName string, params map[string]any) (int32, error) {
+func (c *Client) CreateInstance(typeName string, params map[string]any) (map[string]any, error) {
 	uri := c.baseURL + "/instances?version=" + apiVersion
 
 	body := make(map[string]any)
 	body["type_name"] = typeName
 	body["property_value_map"] = params
 
-	resp, _, err := c.do("POST", uri, body, c.authHeaders())
+	resp, raw, err := c.do("POST", uri, body, c.authHeaders())
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, &ClientError{Message: "create failed", Method: "POST", URI: uri, StatusCode: resp.StatusCode}
+		return nil, &ClientError{Message: "create failed", Method: "POST", URI: uri, StatusCode: resp.StatusCode}
 	}
 
-	return 0, nil // FIXME
+	var item InstanceItem
+	if err := json.Unmarshal(raw, &item); err != nil {
+		return nil, &ClientError{Message: "unmarshal response: " + err.Error(), Method: "POST", URI: uri, StatusCode: resp.StatusCode}
+	}
+
+	return item.PropertyMap, nil
 }
 
 // UpdateInstance is a stub — not yet implemented.

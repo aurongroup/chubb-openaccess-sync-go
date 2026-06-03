@@ -1,10 +1,14 @@
 package lenel
 
 import (
+	"errors"
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/data/model"
+	json "openaccess-sync/pkg/util/json"
 )
+
+var ErrBadgeCreateMissingKey = errors.New("badge: create response missing BADGEKEY")
 
 type BadgeCache struct {
 	list         []*model.Badge
@@ -86,7 +90,7 @@ func (c *BadgeCache) FillWithFilter(cl *client.Client, filter string) error {
 }
 
 func (c *BadgeCache) Create(cl *client.Client, b *model.Badge) (int32, error) {
-	id, err := cl.CreateInstance(
+	props, err := cl.CreateInstance(
 		"Lnl_Badge",
 		map[string]interface{}{
 			"ID":         b.ID,
@@ -102,9 +106,13 @@ func (c *BadgeCache) Create(cl *client.Client, b *model.Badge) (int32, error) {
 		return 0, err
 	}
 
-	b.Key = id // Lnl_Badge uses BADGEKEY as the identifier rather than ID
+	key := json.PropToInt32(props, "BADGEKEY")
+	if key == 0 {
+		return 0, ErrBadgeCreateMissingKey
+	}
+	b.Key = key // Lnl_Badge uses BADGEKEY as the identifier rather than ID
 
-	return id, nil
+	return key, nil
 }
 
 func (c *BadgeCache) Update(cl *client.Client, b *model.Badge) error {
