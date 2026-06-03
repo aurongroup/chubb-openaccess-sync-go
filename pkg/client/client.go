@@ -303,6 +303,16 @@ func (c *Client) getInstancesPage(typeName, filter string, page int) ([]map[stri
 }
 
 // CreateInstance is a stub — not yet implemented.
+/*
+
+{"error":{"code":"openaccess.general.invalidrequestitem","message":"The property PERSONID did not exist or contained an invalid value."},"version":"1.0"}
+
+{"property_value_map":{"ID":13426},"type_name":"Lnl_Cardholder","version":"1.0"}
+
+{"property_value_map":{"BADGEKEY":13239},"type_name":"Lnl_Badge","version":"1.0"}
+
+{"property_value_map":{"AccessLevelID":1,"BadgeKey":13239},"type_name":"Lnl_AccessLevelAssignment","version":"1.0"}
+*/
 func (c *Client) CreateInstance(typeName string, params map[string]any) (int32, error) {
 	uri := c.baseURL + "/instances?version=" + apiVersion
 
