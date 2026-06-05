@@ -66,6 +66,7 @@ func main() {
 	// 5. Update all cardholder records with new SSNO based on attached badges
 
 	// 1. Identify and remove inactive badges
+	log.Printf("# 1/5 Identify and remove inactive badges")
 	activeStatus := bsc.GetByName("Active")
 	if activeStatus == nil {
 		log.Fatalf("Badge status 'Active' not found in cache")
@@ -99,6 +100,7 @@ func main() {
 	}
 
 	// 2. Identify and remove cardholders without badges
+	log.Printf("# 2/5 Identify and remove cardholders without badges")
 	cardholderCache := lenel.NewCardholderCache()
 	if err := cardholderCache.FillDetached(cl); err != nil {
 		log.Fatalf("Detached cardholder cache fill failed: %v", err)
@@ -111,16 +113,39 @@ func main() {
 		}
 	}
 
-	// 3. Find cardholders with an SSNO and move the value to OPHONE (office phone)
-	// TODO - check if SSNO matches attached badge ID
+	// 3. Find cardholders with an SSNO and move the value to OPHONE (office phone),
+	// unless the SSNO matches one of the cardholder's attached badge IDs.
 	// --- Perhaps move remove duplicates first?
+	log.Printf("# 3/5 Find cardholders with an SSNO and move to OPHONE")
 	cardholderCache = lenel.NewCardholderCache()
 	if err := cardholderCache.Fill(cl); err != nil {
 		log.Fatalf("Cardholder cache fill failed: %v", err)
 	}
 
+	badgeCache = lenel.NewBadgeCache()
+	if err := badgeCache.Fill(cl); err != nil {
+		log.Fatalf("Badge cache fill failed: %v", err)
+	}
+
 	for _, c := range cardholderCache.GetItems() {
 		if c.SSNO != "" {
+			ssnoID, err := strconv.ParseInt(c.SSNO, 10, 64)
+			isBadgeID := err == nil && func() bool {
+				for _, b := range badgeCache.GetByCardholder(c.ID) {
+					log.Printf("Checking badge ID %d for cardholder %s %s (%d)", b.ID, c.FirstName, c.LastName, c.ID)
+					if b.ID == ssnoID {
+						log.Printf("SSNO %s matches attached badge ID %d for cardholder %s %s (%d)", c.SSNO, b.ID, c.FirstName, c.LastName, c.ID)
+						return true
+					}
+				}
+				return false
+			}()
+
+			if isBadgeID {
+				log.Printf("Skipping SSNO→OPHONE for cardholder %s %s (%d): SSNO %s matches attached badge", c.FirstName, c.LastName, c.ID, c.SSNO)
+				continue
+			}
+
 			log.Printf("Moving SSNO to OPHONE for cardholder %s %s (%d) [SSNO: %s]", c.FirstName, c.LastName, c.ID, c.SSNO)
 			c.OfficePhone = c.SSNO
 			c.SSNO = ""
@@ -131,6 +156,7 @@ func main() {
 	}
 
 	// 4. Retrieve all badges and identify cardholders with more than one badge
+	log.Printf("# 4/5 Identify cardholders with more than one badge")
 	cardholderCache = lenel.NewCardholderCache()
 	if err := cardholderCache.Fill(cl); err != nil {
 		log.Fatalf("Cardholder cache fill failed: %v", err)
@@ -206,8 +232,8 @@ func main() {
 					log.Printf("------> Assignment for badge ID %d: %s (%d)", badgeKey, a.Name, a.ID)
 
 					newAssignment, err := model.NewAccessLevelAssignment(assignment.AccessLevel, newBadge.Key)
-					if err == nil {
-						log.Printf("******* Error creating new assignment for badge ID %d: %v", badgeKey, err)
+					if err != nil {
+						log.Printf("******* Error creating new assignment object for badge ID %d: %v", badgeKey, err)
 						continue
 					}
 
@@ -235,7 +261,8 @@ func main() {
 		}
 	}
 
-	// 5. Update all cardholder records with new SSNO based on attached badges
+	//// 5. Update all cardholder records with new SSNO based on attached badges
+	log.Printf("# 5/5 Update all cardholder records with new SSNO based on attached badges")
 	badgeCache = lenel.NewBadgeCache()
 	if err := badgeCache.Fill(cl); err != nil {
 		log.Fatalf("Badge cache fill failed: %v", err)
@@ -249,7 +276,13 @@ func main() {
 				continue
 			}
 
-			cardholder.SSNO = strconv.FormatInt(badges[0].ID, 10)
+			badgeIDStr := strconv.FormatInt(badges[0].ID, 10)
+			if cardholder.SSNO == badgeIDStr {
+				log.Printf("Skipping cardholder %s %s (%d): SSNO %s already matches attached badge", cardholder.FirstName, cardholder.LastName, cardholder.ID, cardholder.SSNO)
+				continue
+			}
+
+			cardholder.SSNO = badgeIDStr
 			err := cardholderCache.Update(cl, cardholder)
 			if err != nil {
 				log.Printf("Failed to update cardholder %d: %v", cardholder.ID, err)
