@@ -322,11 +322,11 @@ func (c *Client) CreateInstance(typeName string, params map[string]any) (map[str
 
 	resp, raw, err := c.do("POST", uri, body, c.authHeaders())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("POST request failed: %v - %s", err, raw)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &ClientError{Message: "create failed", Method: "POST", URI: uri, StatusCode: resp.StatusCode}
+		return nil, &ClientError{Message: fmt.Sprintf("create failed: %s", raw), Method: "POST", URI: uri, StatusCode: resp.StatusCode}
 	}
 
 	var item InstanceItem
