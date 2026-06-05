@@ -98,16 +98,18 @@ func (c *BadgeCache) Create(cl *client.Client, b *model.Badge) (int32, error) {
 			"DEACTIVATE": b.Deactivate,
 			"STATUS":     b.Status,
 			"TYPE":       b.Type,
-			"CARDHOLDER": b.Cardholder,
+			"PERSONID":   b.Cardholder,
 		},
 	)
 
 	if err != nil {
+		log.Printf("Failed to create Lnl_Badge: %v", err)
 		return 0, err
 	}
 
 	key := json.PropToInt32(props, "BADGEKEY")
 	if key == 0 {
+		log.Printf("Failed to retrieve badge key for new Lnl_Badge with ID %v", b.ID)
 		return 0, ErrBadgeCreateMissingKey
 	}
 	b.Key = key // Lnl_Badge uses BADGEKEY as the identifier rather than ID

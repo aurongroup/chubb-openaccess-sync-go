@@ -78,7 +78,13 @@ func (c *AssignmentCache) Create(cl *client.Client, ala *model.AccessLevelAssign
 		},
 	)
 
-	return err
+	if err != nil {
+		log.Printf("Failed to create Lnl_AccessLevelAssignment: %v", err)
+		return err
+	}
+
+	log.Printf("Created Lnl_AccessLevelAssignment with AccessLevelID %v and BadgeKey %v", ala.AccessLevel, ala.BadgeKey)
+	return nil
 }
 
 func (c *AssignmentCache) Update(cl *client.Client, ala *model.AccessLevelAssignment) error {
