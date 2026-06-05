@@ -344,6 +344,7 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
+
 			if sc, ok := s.schema[body.TypeName]; ok {
 				var missing []string
 				for _, f := range sc.Required {
@@ -352,11 +353,13 @@ func handleInstances(s *store) http.HandlerFunc {
 					}
 				}
 				if len(missing) > 0 {
+					log.Printf("error: missing required fields: %s", strings.Join(missing, ", "))
 					writeJSON(w, http.StatusBadRequest, map[string]string{
 						"error": "missing required fields: " + strings.Join(missing, ", "),
 					})
 					return
 				}
+
 				if len(sc.References) > 0 {
 					s.mu.Lock()
 					failures := s.checkReferences(sc.References, body.PropertyMap)
@@ -368,6 +371,7 @@ func handleInstances(s *store) http.HandlerFunc {
 						return
 					}
 				}
+
 				merged := make(map[string]any, len(sc.Defaults)+len(body.PropertyMap))
 				for k, v := range sc.Defaults {
 					merged[k] = v
@@ -375,11 +379,13 @@ func handleInstances(s *store) http.HandlerFunc {
 				for k, v := range body.PropertyMap {
 					merged[k] = v
 				}
+
 				body.PropertyMap = merged
 				if sc.AutoTime != "" {
 					body.PropertyMap[sc.AutoTime] = time.Now().Format("2006-01-02T15:04:05")
 				}
 			}
+
 			idField := primaryKeyField(body.TypeName)
 			s.mu.Lock()
 			s.nextID[body.TypeName]++
@@ -388,7 +394,9 @@ func handleInstances(s *store) http.HandlerFunc {
 			s.instances[body.TypeName] = append(s.instances[body.TypeName], body.PropertyMap)
 			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
+
 			log.Printf("instances: created %s %s=%d", body.TypeName, idField, newID)
+
 			writeJSON(w, http.StatusOK, map[string]any{
 				"property_value_map": body.PropertyMap,
 				"type_name":          body.TypeName,
