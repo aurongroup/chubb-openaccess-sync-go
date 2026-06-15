@@ -11,12 +11,12 @@ import (
 // DataCache holds all data fetched from the OpenAccess API.
 type DataCache struct {
 	client       *client.Client
-	statuses     BadgeStatusCache
-	badgeTypes   BadgeTypeCache
-	accessLevels AccessLevelCache
-	badges       BadgeCache
-	cardholders  CardholderCache
-	assignments  AssignmentCache
+	statuses     *BadgeStatusCache
+	badgeTypes   *BadgeTypeCache
+	accessLevels *AccessLevelCache
+	badges       *BadgeCache
+	cardholders  *CardholderCache
+	assignments  *AssignmentCache
 }
 
 // NewDataCache constructs an empty DataCache backed by the given client.

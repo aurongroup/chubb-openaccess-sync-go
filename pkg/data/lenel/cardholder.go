@@ -15,14 +15,22 @@ type CardholderCache struct {
 	byID map[int32]*model.Cardholder
 }
 
-func NewCardholderCache() CardholderCache {
-	return CardholderCache{
+func NewCardholderCache() *CardholderCache {
+	return &CardholderCache{
 		byID: make(map[int32]*model.Cardholder),
 	}
 }
 
 func (c *CardholderCache) GetItems() []*model.Cardholder {
 	return c.list
+}
+
+func (c *CardholderCache) GetRowItems() []model.RowObject {
+	result := make([]model.RowObject, len(c.list))
+	for i, v := range c.list {
+		result[i] = v
+	}
+	return result
 }
 
 func (c *CardholderCache) GetByID(id int32) *model.Cardholder {
@@ -122,4 +130,8 @@ func (c *CardholderCache) Delete(cl *client.Client, ch *model.Cardholder) error 
 			"ID": ch.ID,
 		},
 	)
+}
+
+func (c *CardholderCache) RowHeader() []string {
+	return []string{"ID", "SSNO", "FirstName", "LastName"}
 }

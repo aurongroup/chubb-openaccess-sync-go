@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"openaccess-sync/pkg/util/json"
+	"strconv"
 )
 
 var (
@@ -37,4 +38,8 @@ func NewBadgeStatusFromJSON(props map[string]any) (*BadgeStatus, error) {
 		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
+}
+
+func (bs *BadgeStatus) ToRow() []string {
+	return []string{strconv.FormatInt(int64(bs.ID), 10), bs.Name}
 }

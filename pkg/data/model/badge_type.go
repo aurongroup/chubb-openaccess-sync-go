@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"openaccess-sync/pkg/util/json"
+	"strconv"
 )
 
 // BadgeType represents a badge type from the OpenAccess API.
@@ -37,4 +38,8 @@ func NewBadgeTypeFromJSON(props map[string]any) (*BadgeType, error) {
 		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
+}
+
+func (bt *BadgeType) ToRow() []string {
+	return []string{strconv.FormatInt(int64(bt.ID), 10), bt.Name}
 }

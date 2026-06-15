@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"openaccess-sync/pkg/util/json"
+	"strconv"
 )
 
 var (
@@ -37,4 +38,8 @@ func NewAccessLevelFromJSON(props map[string]any) (*AccessLevel, error) {
 		json.PropToInt32(props, "ID"),
 		json.PropToStr(props, "Name"),
 	)
+}
+
+func (al *AccessLevel) ToRow() []string {
+	return []string{strconv.FormatInt(int64(al.ID), 10), al.Name}
 }

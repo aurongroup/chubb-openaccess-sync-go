@@ -7,7 +7,6 @@ import (
 	"openaccess-sync/pkg/config"
 	"openaccess-sync/pkg/data/lenel"
 	"openaccess-sync/pkg/data/model"
-	"openaccess-sync/pkg/util/date"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -37,7 +36,31 @@ func main() {
 		}
 	}()
 
-	cache := lenel.NewDataCache(cl)
+	// Load caches
+	statusCache := lenel.NewBadgeStatusCache()
+	if err := statusCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load badge status cache: %s", err)
+	}
+
+	typeCache := lenel.NewBadgeTypeCache()
+	if err := typeCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load badge type cache: %s", err)
+	}
+
+	levelCache := lenel.NewAccessLevelCache()
+	if err := levelCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load access level cache: %s", err)
+	}
+
+	cardholderCache := lenel.NewCardholderCache()
+	if err := cardholderCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load cardholder level cache: %s", err)
+	}
+
+	badgeCache := lenel.NewBadgeCache()
+	if err := badgeCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load badge level cache: %s", err)
+	}
 
 	f := excelize.NewFile()
 	defer f.Close()
@@ -49,24 +72,24 @@ func main() {
 		log.Fatalf("Failed to create bold style: %v", err)
 	}
 
-	if err := writeBadgesSheet(f, cache, bold); err != nil {
-		log.Fatalf("Failed to write badges sheet: %v", err)
+	if err := writeSheet(f, bold, "Badge Status", statusCache); err != nil {
+		log.Fatalf("Failed to write badge status sheet: %v", err)
 	}
 
-	if err := writeCardholdersSheet(f, cache, bold); err != nil {
-		log.Fatalf("Failed to write cardholders sheet: %v", err)
+	if err := writeSheet(f, bold, "Badge Type", typeCache); err != nil {
+		log.Fatalf("Failed to write badge type sheet: %v", err)
 	}
 
-	if err := writeAccessLevelsSheet(f, cache, bold); err != nil {
-		log.Fatalf("Failed to write access levels sheet: %v", err)
+	if err := writeSheet(f, bold, "Access Level", levelCache); err != nil {
+		log.Fatalf("Failed to write access level sheet: %v", err)
 	}
 
-	if err := writeBadgeTypesSheet(f, cache, bold); err != nil {
-		log.Fatalf("Failed to write badge types sheet: %v", err)
+	if err := writeSheet(f, bold, "Cardholder", cardholderCache); err != nil {
+		log.Fatalf("Failed to write cardholder level sheet: %v", err)
 	}
 
-	if err := writeBadgeStatusesSheet(f, cache, bold); err != nil {
-		log.Fatalf("Failed to write badge statuses sheet: %v", err)
+	if err := writeSheet(f, bold, "Badge", badgeCache); err != nil {
+		log.Fatalf("Failed to write badge level sheet: %v", err)
 	}
 
 	_ = f.DeleteSheet("Sheet1")
@@ -94,169 +117,22 @@ func writeHeader(f *excelize.File, sheet string, headers []string, style int) er
 	return nil
 }
 
-func writeBadgesSheet(f *excelize.File, cache *lenel.DataCache, style int) error {
-	const sheet = "badges"
+func writeSheet(f *excelize.File, style int, sheet string, cache model.RowObjectCache) error {
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
 
-	headers := []string{
-		"ID", "Badge Key", "Activate", "Deactivate", "Status", "Type", "Cardholder SSNO",
-		"Access Level 1", "Access Level 2", "Access Level 3",
-		"Access Level 4", "Access Level 5", "Access Level 6",
-	}
-
-	if err := writeHeader(f, sheet, headers, style); err != nil {
+	if err := writeHeader(f, sheet, cache.RowHeader(), style); err != nil {
 		return err
 	}
 
-	for i, badge := range cache.GetBadges() {
-		row := i + 2
-		vals := []any{
-			badge.ID,
-			badge.Key,
-			date.Format(badge.Activate),
-			date.Format(badge.Deactivate),
-			badgeStatusName(badge),
-			badgeTypeName(badge),
-			cardholderSSNO(badge),
-		}
-
-		levels := cache.GetAccessLevelsByBadge(badge.Key) // FIXME - changed ID to Key to enable compilation
-
-		for j := 0; j < 6; j++ {
-			if j < len(levels) {
-				vals = append(vals, levels[j].Name)
-			} else {
-				vals = append(vals, "")
-			}
-		}
-
-		for col, v := range vals {
-			if err := f.SetCellValue(sheet, cell(col+1, row), v); err != nil {
+	for i, it := range cache.GetRowItems() {
+		for j, jt := range it.ToRow() {
+			if err := f.SetCellValue(sheet, cell(j+1, i+2), jt); err != nil {
 				return err
 			}
 		}
 	}
-	return nil
-}
-
-func writeCardholdersSheet(f *excelize.File, cache *lenel.DataCache, style int) error {
-	const sheet = "cardholders"
-
-	if _, err := f.NewSheet(sheet); err != nil {
-		return err
-	}
-
-	if err := writeHeader(f, sheet, []string{"ID", "SSNO", "First Name", "Last Name"}, style); err != nil {
-		return err
-	}
-
-	for i, ch := range cache.GetCardholders() {
-		row := i + 2
-		for col, v := range []any{ch.ID, ch.SSNO, ch.FirstName, ch.LastName} {
-			if err := f.SetCellValue(sheet, cell(col+1, row), v); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func writeAccessLevelsSheet(f *excelize.File, cache *lenel.DataCache, style int) error {
-	const sheet = "access levels"
-
-	if _, err := f.NewSheet(sheet); err != nil {
-		return err
-	}
-
-	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
-		return err
-	}
-
-	for i, al := range cache.GetAccessLevels() {
-		row := i + 2
-		if err := f.SetCellValue(sheet, cell(1, row), al.ID); err != nil {
-			return err
-		}
-
-		if err := f.SetCellValue(sheet, cell(2, row), al.Name); err != nil {
-			return err
-		}
-	}
 
 	return nil
-}
-
-func writeBadgeTypesSheet(f *excelize.File, cache *lenel.DataCache, style int) error {
-	const sheet = "badge types"
-
-	if _, err := f.NewSheet(sheet); err != nil {
-		return err
-	}
-
-	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
-		return err
-	}
-
-	for i, bt := range cache.GetBadgeTypes() {
-		row := i + 2
-		if err := f.SetCellValue(sheet, cell(1, row), bt.ID); err != nil {
-			return err
-		}
-		if err := f.SetCellValue(sheet, cell(2, row), bt.Name); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func writeBadgeStatusesSheet(f *excelize.File, cache *lenel.DataCache, style int) error {
-	const sheet = "badge status"
-
-	if _, err := f.NewSheet(sheet); err != nil {
-		return err
-	}
-
-	if err := writeHeader(f, sheet, []string{"ID", "Name"}, style); err != nil {
-		return err
-	}
-
-	for i, bs := range cache.GetBadgeStatuses() {
-		row := i + 2
-		if err := f.SetCellValue(sheet, cell(1, row), bs.ID); err != nil {
-			return err
-		}
-
-		if err := f.SetCellValue(sheet, cell(2, row), bs.Name); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func badgeStatusName(b *model.Badge) string {
-	//if b.Status != nil { // FIXME
-	//	return b.Status.Name
-	//}
-
-	return ""
-}
-
-func badgeTypeName(b *model.Badge) string {
-	//if b.Type != nil { // FIXME
-	//	return b.Type.Name
-	//}
-
-	return ""
-}
-
-func cardholderSSNO(b *model.Badge) string {
-	//if b.Cardholder != nil { // FIXME
-	//	return b.Cardholder.SSNO
-	//}
-
-	return ""
 }

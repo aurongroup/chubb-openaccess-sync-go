@@ -62,8 +62,8 @@ func (c *AssignmentCache) FillWithFilter(cl *client.Client, filter string) error
 	return nil
 }
 
-func NewAssignmentCache() AssignmentCache {
-	return AssignmentCache{
+func NewAssignmentCache() *AssignmentCache {
+	return &AssignmentCache{
 		byAccessLevel: make(map[int32][]*model.AccessLevelAssignment),
 		byBadgeKey:    make(map[int32][]*model.AccessLevelAssignment),
 	}

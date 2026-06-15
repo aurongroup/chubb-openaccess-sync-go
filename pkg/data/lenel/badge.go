@@ -17,8 +17,8 @@ type BadgeCache struct {
 	byCardholder map[int32][]*model.Badge
 }
 
-func NewBadgeCache() BadgeCache {
-	return BadgeCache{
+func NewBadgeCache() *BadgeCache {
+	return &BadgeCache{
 		byID:         make(map[int64]*model.Badge),
 		byKey:        make(map[int32]*model.Badge),
 		byCardholder: make(map[int32][]*model.Badge),
@@ -27,6 +27,14 @@ func NewBadgeCache() BadgeCache {
 
 func (c *BadgeCache) GetItems() []*model.Badge {
 	return c.list
+}
+
+func (c *BadgeCache) GetRowItems() []model.RowObject {
+	result := make([]model.RowObject, len(c.list))
+	for i, v := range c.list {
+		result[i] = v
+	}
+	return result
 }
 
 func (c *BadgeCache) GetByID(id int64) *model.Badge {
@@ -139,4 +147,8 @@ func (c *BadgeCache) Delete(cl *client.Client, b *model.Badge) error {
 			"BADGEKEY": b.Key,
 		},
 	)
+}
+
+func (c *BadgeCache) RowHeader() []string {
+	return []string{"ID", "Badge Key", "Activate", "Deactivate", "Status", "Type", "Cardholder SSNO", "Access Level 1", "Access Level 2", "Access Level 3", "Access Level 4", "Access Level 5", "Access Level 6"}
 }

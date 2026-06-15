@@ -13,8 +13,8 @@ type AccessLevelCache struct {
 	byName map[string]*model.AccessLevel
 }
 
-func NewAccessLevelCache() AccessLevelCache {
-	return AccessLevelCache{
+func NewAccessLevelCache() *AccessLevelCache {
+	return &AccessLevelCache{
 		byID:   make(map[int32]*model.AccessLevel),
 		byName: make(map[string]*model.AccessLevel),
 	}
@@ -22,6 +22,14 @@ func NewAccessLevelCache() AccessLevelCache {
 
 func (c *AccessLevelCache) GetItems() []*model.AccessLevel {
 	return c.list
+}
+
+func (c *AccessLevelCache) GetRowItems() []model.RowObject {
+	result := make([]model.RowObject, len(c.list))
+	for i, v := range c.list {
+		result[i] = v
+	}
+	return result
 }
 
 func (c *AccessLevelCache) GetByID(id int32) *model.AccessLevel {
@@ -61,4 +69,8 @@ func (c *AccessLevelCache) Validate(values []string) error {
 	}
 
 	return nil
+}
+
+func (c *AccessLevelCache) RowHeader() []string {
+	return []string{"ID", "Name"}
 }

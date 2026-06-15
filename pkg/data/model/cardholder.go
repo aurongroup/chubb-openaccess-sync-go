@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"openaccess-sync/pkg/util/json"
+	"strconv"
 )
 
 var (
@@ -47,4 +48,8 @@ func NewCardholderFromAccessRecord(a *AccessRecord) (*Cardholder, error) {
 		a.First,
 		a.Last,
 	)
+}
+
+func (c *Cardholder) ToRow() []string {
+	return []string{strconv.FormatInt(int64(c.ID), 10), c.SSNO, c.FirstName, c.LastName}
 }

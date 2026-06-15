@@ -13,8 +13,8 @@ type BadgeTypeCache struct {
 	byName map[string]*model.BadgeType
 }
 
-func NewBadgeTypeCache() BadgeTypeCache {
-	return BadgeTypeCache{
+func NewBadgeTypeCache() *BadgeTypeCache {
+	return &BadgeTypeCache{
 		byID:   make(map[int32]*model.BadgeType),
 		byName: make(map[string]*model.BadgeType),
 	}
@@ -22,6 +22,14 @@ func NewBadgeTypeCache() BadgeTypeCache {
 
 func (c *BadgeTypeCache) GetItems() []*model.BadgeType {
 	return c.list
+}
+
+func (c *BadgeTypeCache) GetRowItems() []model.RowObject {
+	result := make([]model.RowObject, len(c.list))
+	for i, v := range c.list {
+		result[i] = v
+	}
+	return result
 }
 
 func (c *BadgeTypeCache) GetByID(id int32) *model.BadgeType {
@@ -61,4 +69,8 @@ func (c *BadgeTypeCache) Validate(values []string) error {
 	}
 
 	return nil
+}
+
+func (c *BadgeTypeCache) RowHeader() []string {
+	return []string{"ID", "Name"}
 }

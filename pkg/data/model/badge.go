@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"openaccess-sync/pkg/util/date"
 	"openaccess-sync/pkg/util/json"
+	"strconv"
 	"time"
 )
 
@@ -184,5 +185,17 @@ func (b *Badge) ToJSON() map[string]any {
 			"activate":   date.ISO8601Str(b.Activate),
 			"deactivate": date.ISO8601Str(b.Deactivate),
 		},
+	}
+}
+
+func (b *Badge) ToRow() []string {
+	return []string{
+		strconv.FormatInt(int64(b.ID), 10),
+		strconv.FormatInt(int64(b.Key), 10),
+		"ACTIVATE",
+		"DEACTIVATE",
+		"STATUS",
+		"TYPE",
+		"CARDHOLDER",
 	}
 }
