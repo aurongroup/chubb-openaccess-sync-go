@@ -9,6 +9,8 @@ LDFLAGS   				:= -ldflags="-s -w"
 
 .PHONY: build build-debug build-windows build-windows-debug test clean tidy vet
 
+all: build
+
 build: build-csvexport build-fullexport build-sync build-migrate build-testharness build-querytool
 
 build-csvexport:
