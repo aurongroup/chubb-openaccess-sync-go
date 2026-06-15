@@ -5,16 +5,38 @@ import (
 	"log"
 	"openaccess-sync/pkg/client"
 	"openaccess-sync/pkg/data/model"
+	"openaccess-sync/pkg/util/date"
 	json "openaccess-sync/pkg/util/json"
+	"strconv"
 )
 
 var ErrBadgeCreateMissingKey = errors.New("badge: create response missing BADGEKEY")
+
+type badgeRow struct {
+	id, key, activate, deactivate, status, badgeType, ssno string
+	levels                                                 [6]string
+}
+
+func (r badgeRow) ToRow() []string {
+	return []string{
+		r.id, r.key, r.activate, r.deactivate,
+		r.status, r.badgeType, r.ssno,
+		r.levels[0], r.levels[1], r.levels[2],
+		r.levels[3], r.levels[4], r.levels[5],
+	}
+}
 
 type BadgeCache struct {
 	list         []*model.Badge
 	byID         map[int64]*model.Badge
 	byKey        map[int32]*model.Badge
 	byCardholder map[int32][]*model.Badge
+
+	statuses    *BadgeStatusCache
+	badgeTypes  *BadgeTypeCache
+	cardholders *CardholderCache
+	assignments *AssignmentCache
+	levels      *AccessLevelCache
 }
 
 func NewBadgeCache() *BadgeCache {
@@ -29,10 +51,58 @@ func (c *BadgeCache) GetItems() []*model.Badge {
 	return c.list
 }
 
+func (c *BadgeCache) Resolve(
+	statuses *BadgeStatusCache,
+	types *BadgeTypeCache,
+	cardholders *CardholderCache,
+	assignments *AssignmentCache,
+	levels *AccessLevelCache,
+) {
+	c.statuses, c.badgeTypes, c.cardholders, c.assignments, c.levels =
+		statuses, types, cardholders, assignments, levels
+}
+
 func (c *BadgeCache) GetRowItems() []model.RowObject {
 	result := make([]model.RowObject, len(c.list))
-	for i, v := range c.list {
-		result[i] = v
+
+	for i, b := range c.list {
+		row := badgeRow{
+			id:         strconv.FormatInt(b.ID, 10),
+			key:        strconv.FormatInt(int64(b.Key), 10),
+			activate:   date.Format(b.Activate),
+			deactivate: date.Format(b.Deactivate),
+		}
+
+		if c.statuses != nil {
+			if s := c.statuses.byID[b.Status]; s != nil {
+				row.status = s.Name
+			}
+		}
+
+		if c.badgeTypes != nil {
+			if t := c.badgeTypes.byID[b.Type]; t != nil {
+				row.badgeType = t.Name
+			}
+		}
+
+		if c.cardholders != nil {
+			if ch := c.cardholders.byID[b.Cardholder]; ch != nil {
+				row.ssno = ch.SSNO
+			}
+		}
+
+		if c.assignments != nil && c.levels != nil {
+			for j, a := range c.assignments.byBadgeKey[b.Key] {
+				if j >= 6 {
+					break
+				}
+				if al := c.levels.byID[a.AccessLevel]; al != nil {
+					row.levels[j] = al.Name
+				}
+			}
+		}
+
+		result[i] = row
 	}
 	return result
 }

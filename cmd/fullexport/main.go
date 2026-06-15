@@ -57,10 +57,16 @@ func main() {
 		log.Fatalf("Failed to load cardholder level cache: %s", err)
 	}
 
+	assignmentCache := lenel.NewAssignmentCache()
+	if err := assignmentCache.Fill(cl); err != nil {
+		log.Fatalf("Failed to load assignment cache: %s", err)
+	}
+
 	badgeCache := lenel.NewBadgeCache()
 	if err := badgeCache.Fill(cl); err != nil {
-		log.Fatalf("Failed to load badge level cache: %s", err)
+		log.Fatalf("Failed to load badge cache: %s", err)
 	}
+	badgeCache.Resolve(statusCache, typeCache, cardholderCache, assignmentCache, levelCache)
 
 	f := excelize.NewFile()
 	defer f.Close()

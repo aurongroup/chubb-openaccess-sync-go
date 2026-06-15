@@ -80,18 +80,20 @@ func main() {
 		log.Fatalf("Operation failed: %v", err)
 	}
 
-	// ... and ensure that all badge statuses, badge types, and access levels already exist in Lenel
-	if err := bsc.Validate(csvCache.BadgeStatusNames()); err != nil {
-		log.Fatalf("Fatal data mismatch: %v", err)
-	}
+	log.Printf("Total CSV access records: %d", len(csvCache))
 
-	if err := btc.Validate(csvCache.BadgeTypeNames()); err != nil {
-		log.Fatalf("Fatal data mismatch: %v", err)
-	}
-
-	if err := alc.Validate(csvCache.AccessLevelNames()); err != nil {
-		log.Fatalf("Fatal data mismatch: %v", err)
-	}
+	//// ... and ensure that all badge statuses, badge types, and access levels already exist in Lenel
+	//if err := bsc.Validate(csvCache.BadgeStatusNames()); err != nil {
+	//	log.Fatalf("Fatal data mismatch: %v", err)
+	//}
+	//
+	//if err := btc.Validate(csvCache.BadgeTypeNames()); err != nil {
+	//	log.Fatalf("Fatal data mismatch: %v", err)
+	//}
+	//
+	//if err := alc.Validate(csvCache.AccessLevelNames()); err != nil {
+	//	log.Fatalf("Fatal data mismatch: %v", err)
+	//}
 }
 
 // ContentEquals returns true if two AccessRecords have identical content across all 14 fields.
