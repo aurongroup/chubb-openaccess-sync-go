@@ -85,6 +85,18 @@ func primaryKeyField(typeName string) string {
 	return "ID"
 }
 
+// matchesAll reports whether record m contains every key-value pair in filter.
+// Values are compared via fmt.Sprintf to avoid type mismatches between JSON
+// numbers (float64) and typed integers stored in the filter map.
+func matchesAll(m, filter map[string]any) bool {
+	for k, fv := range filter {
+		if fmt.Sprintf("%v", m[k]) != fmt.Sprintf("%v", fv) {
+			return false
+		}
+	}
+	return true
+}
+
 // initNextID scans loaded instances to find the current maximum primary key value.
 // Must be called with s.mu held (or before serving requests).
 func (s *store) initNextID(typeName string) {
@@ -462,20 +474,18 @@ func handleInstances(s *store) http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 				return
 			}
-			idField := primaryKeyField(body.TypeName)
-			targetID := body.PropertyMap[idField]
 			s.mu.Lock()
 			list := s.instances[body.TypeName]
 			filtered := list[:0]
 			for _, m := range list {
-				if m[idField] != targetID {
+				if !matchesAll(m, body.PropertyMap) {
 					filtered = append(filtered, m)
 				}
 			}
 			s.instances[body.TypeName] = filtered
 			s.rebuildIndex(body.TypeName)
 			s.mu.Unlock()
-			log.Printf("instances: deleted %s %s=%v", body.TypeName, idField, targetID)
+			log.Printf("instances: deleted %s matching %v", body.TypeName, body.PropertyMap)
 			writeJSON(w, http.StatusOK, map[string]any{})
 
 		default:
