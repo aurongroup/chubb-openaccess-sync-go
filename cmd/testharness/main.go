@@ -581,6 +581,30 @@ func loadDataDir(s *store, dir string) error {
 	return nil
 }
 
+func handleInfo(s *store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		s.mu.Lock()
+		counts := make(map[string]int, len(s.instances))
+		for t, items := range s.instances {
+			counts[t] = len(items)
+		}
+		keys := make([]string, 0, len(s.sessions))
+		for k := range s.sessions {
+			keys = append(keys, k)
+		}
+		s.mu.Unlock()
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"sessions":  keys,
+			"instances": counts,
+		})
+	}
+}
+
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	sessionTimeout := flag.Duration("session-timeout", 5*time.Minute, "session token lifetime")
@@ -613,6 +637,7 @@ func main() {
 	http.HandleFunc("/authentication", handleAuthentication(s))
 	http.HandleFunc("/instances", handleInstances(s))
 	http.HandleFunc("/cardholders", handleCardholders(s))
+	http.HandleFunc("/info", handleInfo(s))
 
 	log.Printf("test harness listening on %s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
